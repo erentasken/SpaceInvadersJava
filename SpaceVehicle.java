@@ -1,21 +1,22 @@
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
+import java.util.List;
 import javax.swing.*;
+import javax.swing.Timer;
 
 public class SpaceVehicle extends JPanel implements KeyListener {
     private JLabel playerLabel;
+    private JLabel bullet;
     private ImageIcon icon;
     private Set<Integer> pressedKeys;
+    private List<Enemy> enemies;
     private boolean fireAllowed;
-    private JLabel bullet;
-    private Set<JLabel> enemies;
+    private boolean creatingEnemies;
+
     private int playerSpeed = 7;
     private int playerHP = 10; // Player's hit points
-    private int enemyHP = 5; // Enemy's hit points
 
     SpaceVehicle() {
         this.setSize(500, 500);
@@ -43,18 +44,60 @@ public class SpaceVehicle extends JPanel implements KeyListener {
         }
 
         pressedKeys = new HashSet<>();
-        enemies = new HashSet<>();
+        enemies = new ArrayList<>();
 
         startGameLoop();
     }
 
+    private void createEnemiesIfRequired(int count) {
+        if (enemies.isEmpty() && !creatingEnemies) createEnemies(count);
+    }
+
+    private void createEnemies(int count) {
+        creatingEnemies = true;
+
+        var createEnemies = new Thread(() -> {
+            Random random = new Random();
+            for (int i = 0; i < count; i++) {
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                int x = random.nextInt(getWidth() - 50); // Random x position
+                int y = -50; // Starting position above the screen
+
+                URL enemyURL = getClass().getResource("giphy.gif");
+                if (enemyURL == null) {
+                    System.out.println("Failed to load the enemy image.");
+                    return;
+                }
+
+                ImageIcon enemyIcon = new ImageIcon(enemyURL);
+                JLabel enemyLabel = new JLabel(enemyIcon);
+                enemyLabel.setBounds(x, y, 50, 50);
+                int enemyHP = 5; // Enemy's hit points
+                int enemySpeed = 2; // Enemy's movement speed
+                Enemy enemy = new Enemy(enemyLabel, enemyHP, enemySpeed);
+                enemies.add(enemy);
+                add(enemyLabel);
+            }
+
+            creatingEnemies = false;
+        });
+
+        createEnemies.start();
+    }
+
     private void startGameLoop() {
-        this.createEnemies(5); // Create 10 enemies at the start
+
+        createEnemies(5);
         Timer timer = new Timer(16, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 moveLabel();
                 moveEnemies(); // Move the enemies downward
+                createEnemiesIfRequired(5);
             }
         });
         timer.start();
@@ -119,8 +162,15 @@ public class SpaceVehicle extends JPanel implements KeyListener {
         Rectangle playerBounds = playerLabel.getBounds();
 
         // Check collision with each enemy
-        for (JLabel enemy : enemies) {
-            Rectangle enemyBounds = enemy.getBounds();
+        Iterator<Enemy> enemyIterator = enemies.iterator();
+        while (enemyIterator.hasNext()) {
+            Enemy enemy = enemyIterator.next();
+            JLabel enemyLabel = enemy.getLabel();
+            if (!enemyLabel.isVisible()) {
+                continue; // Skip collision detection if enemy label is not visible
+            }
+
+            Rectangle enemyBounds = enemyLabel.getBounds();
             if (playerBounds.intersects(enemyBounds)) {
                 // Player hits the enemy
                 playerHP--;
@@ -129,10 +179,25 @@ public class SpaceVehicle extends JPanel implements KeyListener {
                     handleGameOver();
                 }
             }
+
+            Rectangle bulletBounds = bullet.getBounds();
+            if (bullet.isVisible() && bulletBounds.intersects(enemyBounds)) {
+                // Bullet hits the enemy
+                enemy.decreaseHP();
+                if (enemy.getHP() <= 0) {
+                    // Enemy is destroyed, handle enemy destruction
+                    handleEnemyDestroyed(enemy);
+                    enemyIterator.remove(); // Remove the enemy from the list
+                }
+                // Remove the bullet
+                bullet.setVisible(false);
+            }
         }
     }
 
-
+    private void handleGameOver() {
+        System.exit(1);
+    }
 
     private boolean isKeyPressed(int keyCode) {
         return pressedKeys.contains(keyCode);
@@ -163,15 +228,19 @@ public class SpaceVehicle extends JPanel implements KeyListener {
 
                 // Check collision with enemies
                 Rectangle bulletBounds = newBullet.getBounds();
-                for (JLabel enemy : enemies) {
-                    Rectangle enemyBounds = enemy.getBounds();
+                for (Enemy enemy : enemies) {
+                    JLabel enemyLabel = enemy.getLabel();
+                    Rectangle enemyBounds = enemyLabel.getBounds();
                     if (bulletBounds.intersects(enemyBounds)) {
                         // Bullet hits the enemy
-                        enemyHP--;
-                        if (enemyHP <= 0) {
+                        enemy.decreaseHP();
+                        if (enemy.getHP() <= 0) {
                             // Enemy is destroyed, handle enemy destruction
                             handleEnemyDestroyed(enemy);
                         }
+                        // Remove the bullet
+                        remove(newBullet);
+                        newBullet.setVisible(false);
                         break;  // Exit the loop when an enemy is hit
                     }
                 }
@@ -181,6 +250,7 @@ public class SpaceVehicle extends JPanel implements KeyListener {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
+
             }
 
             SwingUtilities.invokeLater(() -> {
@@ -193,54 +263,35 @@ public class SpaceVehicle extends JPanel implements KeyListener {
         bulletThread.start();
     }
 
-    private void handleEnemyDestroyed(JLabel enemy) {
+    private void handleEnemyDestroyed(Enemy enemy) {
         // Enemy is destroyed logic goes here
         // Example: Remove the enemy, award points, etc.
-        remove(enemy); // Remove the enemy from the container
-        enemies.remove(enemy); // Remove the enemy from the set
+        JLabel enemyLabel = enemy.getLabel();
+        enemyLabel.setVisible(false); // Set the enemy label as not visible
+        remove(enemyLabel); // Remove the enemy from the container
         repaint(); // Repaint the container to update the UI
         // Continue with other game logic
     }
 
     private void moveEnemies() {
-        for (JLabel enemy : enemies) {
-            int x = enemy.getX();
-            int y = enemy.getY();
-            int dy = 2; // Enemy movement speed
+        Iterator<Enemy> iterator = enemies.iterator();
 
-            enemy.setLocation(x, y + dy);
+        while (iterator.hasNext()) {
+            Enemy enemy = iterator.next();
+            JLabel enemyLabel = enemy.getLabel();
+            int x = enemyLabel.getX();
+            int y = enemyLabel.getY();
+            int dy = enemy.getSpeed(); // Enemy movement speed
 
-            if (y > getHeight()) {
-                // Enemy has reached the bottom of the screen, remove it
-                remove(enemy);
-                enemies.remove(enemy);
+            enemyLabel.setLocation(x, y + dy);
+
+            if (y > getHeight() || !enemyLabel.isVisible()) {
+                // Enemy has reached the bottom of the screen or is not visible, remove it
+                iterator.remove();
+                remove(enemyLabel);
             }
         }
-    }
-
-    private void createEnemies(int count) {
-        Random random = new Random();
-        for (int i = 0; i < count; i++) {
-            int x = random.nextInt(getWidth() - 50); // Random x position
-            int y = -50; // Starting position above the screen
-
-            URL enemyURL = getClass().getResource("giphy.gif");
-            if (enemyURL == null) {
-                System.out.println("Failed to load the enemy image.");
-                return;
-            }
-
-            ImageIcon enemyIcon = new ImageIcon(enemyURL);
-            JLabel enemy = new JLabel(enemyIcon);
-            enemy.setBounds(x, y, 50, 50);
-            enemies.add(enemy);
-            add(enemy);
-        }
-    }
-
-    private void handleGameOver() {
-        // Game over logic goes here
-        // Example: Stop the game, display game over message, etc.
-        System.exit(0); // Close the application for now
     }
 }
+
+
