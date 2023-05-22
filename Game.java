@@ -6,35 +6,39 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.Timer;
 
-public class SpaceVehicle extends JPanel implements KeyListener {
+public class Game extends JPanel implements KeyListener {
     private JLabel playerLabel;
     private JLabel bullet;
     private ImageIcon icon;
     private Set<Integer> pressedKeys;
-    private List<Enemy> enemies;
-    private boolean fireAllowed;
+    protected List<Enemy> enemies;
+    protected static boolean fireAllowed;
     private boolean creatingEnemies;
-
     private int playerSpeed = 7;
     private int playerHP = 10; // Player's hit points
+    Scoreboard scoreboard = new Scoreboard();
+    private int score =0;
+    private List<JLabel> bulletList;
 
-    SpaceVehicle() {
+
+    Game() {
+        this.setBackground(Color.BLACK);
+        this.add(scoreboard);
         this.setSize(500, 500);
         this.setLayout(null);
         this.setFocusable(true); // Set panel focusable
         this.requestFocusInWindow(); // Request focus for key events
         this.addKeyListener(this);
 
-        URL iconPath = getClass().getResource("alien1.png");
+        URL iconPath = getClass().getResource("SpaceShip.png");
         icon = new ImageIcon(iconPath);
 
         if (icon.getImage() != null) {
             playerLabel = new JLabel();
-            playerLabel.setBounds(0, 0, 47, 48);
+            playerLabel.setBounds(0, 0, 60, 62);
             playerLabel.setIcon(icon);
-            playerLabel.setOpaque(true);
+            playerLabel.setOpaque(false);
             add(playerLabel);
-
             bullet = new JLabel(new ImageIcon(getClass().getResource("alien1.png")));
             bullet.setBounds(0, -20, 10, 20);
             bullet.setVisible(false);
@@ -67,7 +71,7 @@ public class SpaceVehicle extends JPanel implements KeyListener {
                 int x = random.nextInt(getWidth() - 50); // Random x position
                 int y = -50; // Starting position above the screen
 
-                URL enemyURL = getClass().getResource("giphy.gif");
+                URL enemyURL = getClass().getResource("enemy.png");
                 if (enemyURL == null) {
                     System.out.println("Failed to load the enemy image.");
                     return;
@@ -75,7 +79,7 @@ public class SpaceVehicle extends JPanel implements KeyListener {
 
                 ImageIcon enemyIcon = new ImageIcon(enemyURL);
                 JLabel enemyLabel = new JLabel(enemyIcon);
-                enemyLabel.setBounds(x, y, 50, 50);
+                enemyLabel.setBounds(x, y, 64, 64);
                 int enemyHP = 5; // Enemy's hit points
                 int enemySpeed = 2; // Enemy's movement speed
                 Enemy enemy = new Enemy(enemyLabel, enemyHP, enemySpeed);
@@ -85,7 +89,6 @@ public class SpaceVehicle extends JPanel implements KeyListener {
 
             creatingEnemies = false;
         });
-
         createEnemies.start();
     }
 
@@ -98,6 +101,7 @@ public class SpaceVehicle extends JPanel implements KeyListener {
                 moveLabel();
                 moveEnemies(); // Move the enemies downward
                 createEnemiesIfRequired(5);
+                //BulletLoop();
             }
         });
         timer.start();
@@ -203,20 +207,29 @@ public class SpaceVehicle extends JPanel implements KeyListener {
         return pressedKeys.contains(keyCode);
     }
 
+
+
     private void throwBullet() {
         if (!fireAllowed) return;
         int spaceshipX = playerLabel.getX();
         int spaceshipY = playerLabel.getY();
 
-        var bulletURL = getClass().getResource("/alien1.png");
+        if (bullet != null) {
+            remove(bullet);
+            repaint();
+        }
+
+        var bulletURL = getClass().getResource("/laserbolt-1.png");
         if (bulletURL == null) {
             System.out.println("Failed to load the bullet image.");
             return;
         }
 
-        ImageIcon bulletIcon = new ImageIcon(bulletURL);
+        var url = getClass().getResource("/laserbolt-1.png");
+        ImageIcon bulletIcon = new ImageIcon(url);
         JLabel newBullet = new JLabel(bulletIcon);
-        newBullet.setBounds(spaceshipX + 20, spaceshipY - 20, 10, 20);
+        newBullet.setOpaque(false);
+        newBullet.setBounds(spaceshipX + 13, spaceshipY - 20, 30, 30);
         add(newBullet);
 
         Thread bulletThread = new Thread(() -> {
@@ -263,35 +276,42 @@ public class SpaceVehicle extends JPanel implements KeyListener {
         bulletThread.start();
     }
 
-    private void handleEnemyDestroyed(Enemy enemy) {
-        // Enemy is destroyed logic goes here
-        // Example: Remove the enemy, award points, etc.
+
+
+    protected void handleEnemyDestroyed(Enemy enemy) {
         JLabel enemyLabel = enemy.getLabel();
-        enemyLabel.setVisible(false); // Set the enemy label as not visible
-        remove(enemyLabel); // Remove the enemy from the container
-        repaint(); // Repaint the container to update the UI
-        // Continue with other game logic
+        enemyLabel.setVisible(false);
+        remove(enemyLabel);
+        repaint();
+        score++;
+        scoreboard.updateScore(score);
     }
 
     private void moveEnemies() {
         Iterator<Enemy> iterator = enemies.iterator();
+        List<JLabel> labelsToRemove = new ArrayList<>();
 
         while (iterator.hasNext()) {
             Enemy enemy = iterator.next();
             JLabel enemyLabel = enemy.getLabel();
             int x = enemyLabel.getX();
             int y = enemyLabel.getY();
-            int dy = enemy.getSpeed(); // Enemy movement speed
+            int dy = enemy.getSpeed();
 
             enemyLabel.setLocation(x, y + dy);
 
             if (y > getHeight() || !enemyLabel.isVisible()) {
-                // Enemy has reached the bottom of the screen or is not visible, remove it
+                // Enemy has reached the bottom of the screen or is not visible, mark it for removal
                 iterator.remove();
-                remove(enemyLabel);
+                labelsToRemove.add(enemyLabel);
             }
         }
+
+        // Remove the marked labels from the container
+        for (JLabel label : labelsToRemove) {
+            remove(label);
+        }
+
+        repaint(); // Repaint the container to update the UI
     }
 }
-
-

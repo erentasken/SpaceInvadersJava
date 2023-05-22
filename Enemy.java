@@ -1,6 +1,6 @@
 import javax.swing.*;
 
-public class Enemy {
+public class Enemy { //enemy
     private JLabel label;
     private int hp;
     private int speed;

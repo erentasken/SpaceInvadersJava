@@ -4,11 +4,8 @@ import java.awt.*;
 
 public class MyGUI extends JFrame {
     private JMenuBar menuBar;
-
     public MyGUI() {
         initializeMenuBar();
-        initializeComponents();
-
         setPreferredSize(new Dimension(500, 500));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         pack();
@@ -26,23 +23,17 @@ public class MyGUI extends JFrame {
         fileMenu.add(playGame);
         fileMenu.add(highScore);
         fileMenu.add(quit);
-
         JMenu helpMenu = new JMenu("Help");
         JMenuItem about = new JMenuItem("About");
         helpMenu.add(about);
-
         menuBar = new JMenuBar();
         menuBar.add(fileMenu);
         menuBar.add(helpMenu);
-
         setJMenuBar(menuBar);
-    }
-
-    private void initializeComponents() {
-        add(new SpaceVehicle());
+        add(new Game());
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(MyGUI::new);
+        new MyGUI();
     }
 }
