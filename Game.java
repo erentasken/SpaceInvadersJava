@@ -1,12 +1,13 @@
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
+import java.sql.Array;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.Timer;
 
-public class Game extends JPanel implements KeyListener {
+public class Game extends JPanel implements KeyListener{
     private JLabel playerLabel;
     private JLabel bullet;
     private ImageIcon icon;
@@ -18,8 +19,13 @@ public class Game extends JPanel implements KeyListener {
     private int playerHP = 10; // Player's hit points
     Scoreboard scoreboard = new Scoreboard();
     private int score =0;
-    private List<JLabel> bulletList;
-
+    private static final double BULLET_DELAY = 2e8;
+    long lastBulletTime = 0;
+    long time = System.nanoTime();
+    int currentTime = 0;
+    int spawner = 0;
+    int levelUpTimes = 10;
+    //private BulletManager bulletManager = new BulletManager();
 
     Game() {
         this.setBackground(Color.BLACK);
@@ -27,7 +33,6 @@ public class Game extends JPanel implements KeyListener {
         this.setSize(500, 500);
         this.setLayout(null);
         this.setFocusable(true); // Set panel focusable
-        this.requestFocusInWindow(); // Request focus for key events
         this.addKeyListener(this);
 
         URL iconPath = getClass().getResource("SpaceShip.png");
@@ -50,8 +55,25 @@ public class Game extends JPanel implements KeyListener {
         pressedKeys = new HashSet<>();
         enemies = new ArrayList<>();
 
+
         startGameLoop();
+
     }
+
+    private void startGameLoop() {
+        createEnemies(5);
+        Timer timer = new Timer(16, e -> {
+            currentTime = (int) ((System.nanoTime()-time)/1000000000);
+            moveLabel();
+            moveEnemies(); // Move the enemies downward
+            if(currentTime == levelUpTimes){
+                spawner += currentTime / 1.5;
+                levelUpTimes*=3/2;
+            }createEnemiesIfRequired(spawner);
+        });
+        timer.start();
+    }
+
 
     private void createEnemiesIfRequired(int count) {
         if (enemies.isEmpty() && !creatingEnemies) createEnemies(count);
@@ -81,7 +103,7 @@ public class Game extends JPanel implements KeyListener {
                 JLabel enemyLabel = new JLabel(enemyIcon);
                 enemyLabel.setBounds(x, y, 64, 64);
                 int enemyHP = 5; // Enemy's hit points
-                int enemySpeed = 2; // Enemy's movement speed
+                int enemySpeed = 1; // Enemy's movement speed
                 Enemy enemy = new Enemy(enemyLabel, enemyHP, enemySpeed);
                 enemies.add(enemy);
                 add(enemyLabel);
@@ -92,20 +114,7 @@ public class Game extends JPanel implements KeyListener {
         createEnemies.start();
     }
 
-    private void startGameLoop() {
 
-        createEnemies(5);
-        Timer timer = new Timer(16, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                moveLabel();
-                moveEnemies(); // Move the enemies downward
-                createEnemiesIfRequired(5);
-                //BulletLoop();
-            }
-        });
-        timer.start();
-    }
 
     @Override
     public void keyTyped(KeyEvent e) {
@@ -116,8 +125,15 @@ public class Game extends JPanel implements KeyListener {
     public void keyPressed(KeyEvent e) {
         int keyCode = e.getKeyCode();
         pressedKeys.add(keyCode);
+
         if (keyCode == KeyEvent.VK_SPACE) {
-            throwBullet();
+            long currentTime = System.nanoTime();
+            long elapsedTime = currentTime - lastBulletTime;
+
+            if (elapsedTime >= BULLET_DELAY) {
+                throwBullet();
+                lastBulletTime = currentTime;
+            }
         }
     }
 
@@ -176,24 +192,19 @@ public class Game extends JPanel implements KeyListener {
 
             Rectangle enemyBounds = enemyLabel.getBounds();
             if (playerBounds.intersects(enemyBounds)) {
-                // Player hits the enemy
                 playerHP--;
                 if (playerHP <= 0) {
-                    // Player is destroyed, handle game over
                     handleGameOver();
                 }
             }
 
             Rectangle bulletBounds = bullet.getBounds();
             if (bullet.isVisible() && bulletBounds.intersects(enemyBounds)) {
-                // Bullet hits the enemy
                 enemy.decreaseHP();
                 if (enemy.getHP() <= 0) {
-                    // Enemy is destroyed, handle enemy destruction
                     handleEnemyDestroyed(enemy);
                     enemyIterator.remove(); // Remove the enemy from the list
                 }
-                // Remove the bullet
                 bullet.setVisible(false);
             }
         }
@@ -206,8 +217,6 @@ public class Game extends JPanel implements KeyListener {
     private boolean isKeyPressed(int keyCode) {
         return pressedKeys.contains(keyCode);
     }
-
-
 
     private void throwBullet() {
         if (!fireAllowed) return;

@@ -1,6 +1,8 @@
 // MyGUI.java
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class MyGUI extends JFrame {
     private JMenuBar menuBar;
@@ -30,10 +32,38 @@ public class MyGUI extends JFrame {
         menuBar.add(fileMenu);
         menuBar.add(helpMenu);
         setJMenuBar(menuBar);
-        add(new Game());
+
+        playGame.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                SwingUtilities.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        Game game = new Game();
+                        add(game);
+                        game.requestFocusInWindow();
+                    }
+                });
+            }
+        });
+
+        quit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.exit(0);
+            }
+        });
     }
 
+
+
     public static void main(String[] args) {
-        new MyGUI();
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new MyGUI();
+            }
+        });
+
     }
 }

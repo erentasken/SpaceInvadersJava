@@ -7,9 +7,8 @@ public class Scoreboard extends JLabel { //scoreboard
         setHorizontalAlignment(JLabel.CENTER);
         setFont(new Font("Arial", Font.BOLD, 24));
         setBounds(0, 0, 200, 30);
-        setForeground(Color.black);
-        setBackground(Color.white);
-        setOpaque(true);
+        setForeground(Color.cyan);
+        setOpaque(false);
     }
 
     public void updateScore(int score) {
