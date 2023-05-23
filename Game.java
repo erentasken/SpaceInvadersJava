@@ -1,22 +1,21 @@
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URL;
-import java.sql.Array;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.Timer;
 
 public class Game extends JPanel implements KeyListener{
-    private JLabel playerLabel;
-    private JLabel bullet;
+    protected JLabel playerLabel;
+    protected JLabel bullet;
     private ImageIcon icon;
     private Set<Integer> pressedKeys;
     protected List<Enemy> enemies;
     protected static boolean fireAllowed;
     private boolean creatingEnemies;
     private int playerSpeed = 7;
-    private int playerHP = 10; // Player's hit points
+    protected int playerHP = 10; // Player's hit points
     Scoreboard scoreboard = new Scoreboard();
     private int score =0;
     private static final double BULLET_DELAY = 2e8;
@@ -25,7 +24,8 @@ public class Game extends JPanel implements KeyListener{
     int currentTime = 0;
     int spawner = 0;
     int levelUpTimes = 10;
-    //private BulletManager bulletManager = new BulletManager();
+    private BulletManager bulletManager;
+    boolean damageOn = true;
 
     Game() {
         this.setBackground(Color.BLACK);
@@ -51,10 +51,9 @@ public class Game extends JPanel implements KeyListener{
         } else {
             System.out.println("Failed to load the player image.");
         }
-
         pressedKeys = new HashSet<>();
         enemies = new ArrayList<>();
-
+        bulletManager = new BulletManager();
 
         startGameLoop();
 
@@ -64,14 +63,21 @@ public class Game extends JPanel implements KeyListener{
         createEnemies(5);
         Timer timer = new Timer(16, e -> {
             currentTime = (int) ((System.nanoTime()-time)/1000000000);
+            bulletManager.bulletUpdate(playerLabel, enemies, this);
             moveLabel();
             moveEnemies(); // Move the enemies downward
-            if(currentTime == levelUpTimes){
-                spawner += currentTime / 1.5;
-                levelUpTimes*=3/2;
-            }createEnemiesIfRequired(spawner);
+            spawnerUpdater();
+            createEnemiesIfRequired(spawner);
+            repaint();
         });
         timer.start();
+    }
+
+    private void spawnerUpdater(){
+        if(currentTime == levelUpTimes){
+            spawner += currentTime / 1.5;
+            levelUpTimes*=3/2;
+        }
     }
 
 
@@ -131,7 +137,7 @@ public class Game extends JPanel implements KeyListener{
             long elapsedTime = currentTime - lastBulletTime;
 
             if (elapsedTime >= BULLET_DELAY) {
-                throwBullet();
+                bulletManager.throwBullet(fireAllowed, playerLabel, this, bullet);
                 lastBulletTime = currentTime;
             }
         }
@@ -175,42 +181,10 @@ public class Game extends JPanel implements KeyListener{
 
         playerLabel.setLocation(x + dx, y + dy);
 
-        checkCollision(); // Check collision with enemies
+        bulletManager.checkBulletCollision(enemies, playerLabel, this, bullet); // Check collision with enemies
     }
 
-    private void checkCollision() {
-        Rectangle playerBounds = playerLabel.getBounds();
-
-        // Check collision with each enemy
-        Iterator<Enemy> enemyIterator = enemies.iterator();
-        while (enemyIterator.hasNext()) {
-            Enemy enemy = enemyIterator.next();
-            JLabel enemyLabel = enemy.getLabel();
-            if (!enemyLabel.isVisible()) {
-                continue; // Skip collision detection if enemy label is not visible
-            }
-
-            Rectangle enemyBounds = enemyLabel.getBounds();
-            if (playerBounds.intersects(enemyBounds)) {
-                playerHP--;
-                if (playerHP <= 0) {
-                    handleGameOver();
-                }
-            }
-
-            Rectangle bulletBounds = bullet.getBounds();
-            if (bullet.isVisible() && bulletBounds.intersects(enemyBounds)) {
-                enemy.decreaseHP();
-                if (enemy.getHP() <= 0) {
-                    handleEnemyDestroyed(enemy);
-                    enemyIterator.remove(); // Remove the enemy from the list
-                }
-                bullet.setVisible(false);
-            }
-        }
-    }
-
-    private void handleGameOver() {
+    void handleGameOver() {
         System.exit(1);
     }
 
@@ -218,72 +192,6 @@ public class Game extends JPanel implements KeyListener{
         return pressedKeys.contains(keyCode);
     }
 
-    private void throwBullet() {
-        if (!fireAllowed) return;
-        int spaceshipX = playerLabel.getX();
-        int spaceshipY = playerLabel.getY();
-
-        if (bullet != null) {
-            remove(bullet);
-            repaint();
-        }
-
-        var bulletURL = getClass().getResource("/laserbolt-1.png");
-        if (bulletURL == null) {
-            System.out.println("Failed to load the bullet image.");
-            return;
-        }
-
-        var url = getClass().getResource("/laserbolt-1.png");
-        ImageIcon bulletIcon = new ImageIcon(url);
-        JLabel newBullet = new JLabel(bulletIcon);
-        newBullet.setOpaque(false);
-        newBullet.setBounds(spaceshipX + 13, spaceshipY - 20, 30, 30);
-        add(newBullet);
-
-        Thread bulletThread = new Thread(() -> {
-            while (newBullet.isVisible() && newBullet.getY() >= 0) {
-                int bulletX = newBullet.getX();
-                int bulletY = newBullet.getY();
-
-                newBullet.setLocation(bulletX, bulletY - 10);
-
-                // Check collision with enemies
-                Rectangle bulletBounds = newBullet.getBounds();
-                for (Enemy enemy : enemies) {
-                    JLabel enemyLabel = enemy.getLabel();
-                    Rectangle enemyBounds = enemyLabel.getBounds();
-                    if (bulletBounds.intersects(enemyBounds)) {
-                        // Bullet hits the enemy
-                        enemy.decreaseHP();
-                        if (enemy.getHP() <= 0) {
-                            // Enemy is destroyed, handle enemy destruction
-                            handleEnemyDestroyed(enemy);
-                        }
-                        // Remove the bullet
-                        remove(newBullet);
-                        newBullet.setVisible(false);
-                        break;  // Exit the loop when an enemy is hit
-                    }
-                }
-
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-            }
-
-            SwingUtilities.invokeLater(() -> {
-                remove(newBullet);
-                repaint();
-            });
-        });
-
-        fireAllowed = false;
-        bulletThread.start();
-    }
 
 
 
