@@ -1,6 +1,4 @@
 import javax.swing.*;
-import java.awt.*;
-import java.net.URL;
 
 public class Enemy { //enemy
     private JLabel label;

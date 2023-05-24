@@ -1,6 +1,5 @@
 import java.awt.*;
 import java.awt.event.*;
-import java.net.URL;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
@@ -9,23 +8,27 @@ import javax.swing.Timer;
 public class Game extends JPanel implements KeyListener{
     protected JLabel playerLabel;
     protected JLabel bullet;
-    private ImageIcon icon;
+    protected JLabel enemyLabel;
+    protected boolean damageOn = true;
+    protected boolean fireAllowed;
     private Set<Integer> pressedKeys;
     protected List<Enemy> enemies;
-    protected static boolean fireAllowed;
-    private boolean creatingEnemies;
+
+    protected boolean creatingEnemies;
     private int playerSpeed = 7;
     protected int playerHP = 10; // Player's hit points
-    Scoreboard scoreboard = new Scoreboard();
+    Scoreboard scoreboard = new Scoreboard();;
     private int score =0;
     private static final double BULLET_DELAY = 2e8;
     long lastBulletTime = 0;
     long time = System.nanoTime();
     int currentTime = 0;
-    int spawner = 0;
     int levelUpTimes = 10;
+
+
+
     private BulletManager bulletManager;
-    boolean damageOn = true;
+    private EntityManager entityManager = new EntityManager();
 
     Game() {
         this.setBackground(Color.BLACK);
@@ -35,92 +38,29 @@ public class Game extends JPanel implements KeyListener{
         this.setFocusable(true); // Set panel focusable
         this.addKeyListener(this);
 
-        URL iconPath = getClass().getResource("SpaceShip.png");
-        icon = new ImageIcon(iconPath);
 
-        if (icon.getImage() != null) {
-            playerLabel = new JLabel();
-            playerLabel.setBounds(0, 0, 60, 62);
-            playerLabel.setIcon(icon);
-            playerLabel.setOpaque(false);
-            add(playerLabel);
-            bullet = new JLabel(new ImageIcon(getClass().getResource("alien1.png")));
-            bullet.setBounds(0, -20, 10, 20);
-            bullet.setVisible(false);
-            this.add(bullet);
-        } else {
-            System.out.println("Failed to load the player image.");
-        }
+        entityManager.initialisePlayerLabel(this);
+        entityManager.initialiseBulletLabel(this);
         pressedKeys = new HashSet<>();
         enemies = new ArrayList<>();
         bulletManager = new BulletManager();
 
-        startGameLoop();
 
+        startGameLoop();
     }
 
     private void startGameLoop() {
-        createEnemies(5);
+        entityManager.initialiseEnemies(this, 5);
+        //createEnemies(5);
         Timer timer = new Timer(16, e -> {
             currentTime = (int) ((System.nanoTime()-time)/1000000000);
             bulletManager.bulletUpdate(playerLabel, enemies, this);
-            moveLabel();
-            moveEnemies(); // Move the enemies downward
-            spawnerUpdater();
-            createEnemiesIfRequired(spawner);
+            movePlayer(playerSpeed);
+            entityManager.enemyLoop(this);
             repaint();
         });
         timer.start();
     }
-
-    private void spawnerUpdater(){
-        if(currentTime == levelUpTimes){
-            spawner += currentTime / 1.5;
-            levelUpTimes*=3/2;
-        }
-    }
-
-
-    private void createEnemiesIfRequired(int count) {
-        if (enemies.isEmpty() && !creatingEnemies) createEnemies(count);
-    }
-
-    private void createEnemies(int count) {
-        creatingEnemies = true;
-
-        var createEnemies = new Thread(() -> {
-            Random random = new Random();
-            for (int i = 0; i < count; i++) {
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                int x = random.nextInt(getWidth() - 50); // Random x position
-                int y = -50; // Starting position above the screen
-
-                URL enemyURL = getClass().getResource("enemy.png");
-                if (enemyURL == null) {
-                    System.out.println("Failed to load the enemy image.");
-                    return;
-                }
-
-                ImageIcon enemyIcon = new ImageIcon(enemyURL);
-                JLabel enemyLabel = new JLabel(enemyIcon);
-                enemyLabel.setBounds(x, y, 64, 64);
-                int enemyHP = 5; // Enemy's hit points
-                int enemySpeed = 1; // Enemy's movement speed
-                Enemy enemy = new Enemy(enemyLabel, enemyHP, enemySpeed);
-                enemies.add(enemy);
-                add(enemyLabel);
-            }
-
-            creatingEnemies = false;
-        });
-        createEnemies.start();
-    }
-
-
 
     @Override
     public void keyTyped(KeyEvent e) {
@@ -137,7 +77,7 @@ public class Game extends JPanel implements KeyListener{
             long elapsedTime = currentTime - lastBulletTime;
 
             if (elapsedTime >= BULLET_DELAY) {
-                bulletManager.throwBullet(fireAllowed, playerLabel, this, bullet);
+                bulletManager.throwBullet(this);
                 lastBulletTime = currentTime;
             }
         }
@@ -152,7 +92,7 @@ public class Game extends JPanel implements KeyListener{
         }
     }
 
-    private void moveLabel() {
+    private void movePlayer(int playerSpeed) {
         int x = playerLabel.getX();
         int y = playerLabel.getY();
         int dx = 0;
@@ -181,7 +121,7 @@ public class Game extends JPanel implements KeyListener{
 
         playerLabel.setLocation(x + dx, y + dy);
 
-        bulletManager.checkBulletCollision(enemies, playerLabel, this, bullet); // Check collision with enemies
+        bulletManager.checkBulletCollision(this, bullet); // Check collision with enemies
     }
 
     void handleGameOver() {
@@ -192,9 +132,6 @@ public class Game extends JPanel implements KeyListener{
         return pressedKeys.contains(keyCode);
     }
 
-
-
-
     protected void handleEnemyDestroyed(Enemy enemy) {
         JLabel enemyLabel = enemy.getLabel();
         enemyLabel.setVisible(false);
@@ -204,31 +141,4 @@ public class Game extends JPanel implements KeyListener{
         scoreboard.updateScore(score);
     }
 
-    private void moveEnemies() {
-        Iterator<Enemy> iterator = enemies.iterator();
-        List<JLabel> labelsToRemove = new ArrayList<>();
-
-        while (iterator.hasNext()) {
-            Enemy enemy = iterator.next();
-            JLabel enemyLabel = enemy.getLabel();
-            int x = enemyLabel.getX();
-            int y = enemyLabel.getY();
-            int dy = enemy.getSpeed();
-
-            enemyLabel.setLocation(x, y + dy);
-
-            if (y > getHeight() || !enemyLabel.isVisible()) {
-                // Enemy has reached the bottom of the screen or is not visible, mark it for removal
-                iterator.remove();
-                labelsToRemove.add(enemyLabel);
-            }
-        }
-
-        // Remove the marked labels from the container
-        for (JLabel label : labelsToRemove) {
-            remove(label);
-        }
-
-        repaint(); // Repaint the container to update the UI
-    }
 }

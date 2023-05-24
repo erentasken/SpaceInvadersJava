@@ -1,10 +1,15 @@
 import javax.swing.*;
 import java.awt.*;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 public class BulletManager {
+    private String bulletImgName = "laserbolt-1.png";
+    private URL iconPath;
+    private Icon icon;
+    private JLabel localLabel;
     private List bullets;
     public BulletManager(){
         bullets = new ArrayList();
@@ -23,7 +28,7 @@ public class BulletManager {
             int bulletY = bullet.getY();
             bullet.setLocation(bulletX, bulletY-10);
             bullet.setVisible(true);
-            checkBulletCollision(enemies, playerLabel, game, bullet);
+            checkBulletCollision(game, bullet);
             if(!bullet.isVisible() || bullet.getY() < -bullet.getHeight()){
                 iterator.remove();
                 game.remove(bullet);
@@ -31,42 +36,40 @@ public class BulletManager {
         }
     }
 
-    public void throwBullet(boolean fireAllowed, JLabel playerLabel, Game game, JLabel bullet){
-        if(!fireAllowed) return;
-        int spaceshipX = playerLabel.getX();
-        int spaceshipY = playerLabel.getY();
+    public void throwBullet(Game game){
+        if(!game.fireAllowed) return;
+        int spaceshipX = game.playerLabel.getX();
+        int spaceshipY = game.playerLabel.getY();
 
-        if (bullet != null) {
-            game.remove(bullet);
+        if (game.bullet != null) {
+            game.remove(game.bullet);
             game.repaint();
         }
 
-        var bulletURL = getClass().getResource("/laserbolt-1.png");
-        if (bulletURL == null) {
-            System.out.println("Failed to load the bullet image.");
+        iconPath = getClass().getResource(bulletImgName);
+        if (iconPath == null) {
+            System.out.println("Failed to load the enemy image.");
             return;
         }
-
-        var url = getClass().getResource("/laserbolt-1.png");
-        ImageIcon bulletIcon = new ImageIcon(url);
-        JLabel newBullet = new JLabel(bulletIcon);
-        newBullet.setOpaque(false);
-        newBullet.setBounds(spaceshipX + 13, spaceshipY - 20, 30, 30);
-        bullet.setVisible(true);
-        game.add(newBullet);
-        bullets.add(newBullet);
+        icon = new ImageIcon(iconPath);
+        localLabel = new JLabel(icon);
+        localLabel.setOpaque(false);
+        localLabel.setBounds(spaceshipX + 13, spaceshipY - 20, 30, 30);
+        localLabel.setVisible(true);
+        game.add(localLabel);
+        bullets.add(localLabel);
 
     }
 
-    public void checkBulletCollision(List enemies, JLabel playerLabel, Game game, JLabel bullet){
-        Iterator<Enemy> enemyIterator = enemies.iterator();
+    public void checkBulletCollision(Game game, JLabel bullet){
+        Iterator<Enemy> enemyIterator = game.enemies.iterator();
         while (enemyIterator.hasNext()) {
             Enemy enemy = enemyIterator.next();
             JLabel enemyLabel = enemy.getLabel();
             if (!enemyLabel.isVisible()) {
                 continue; // Skip collision detection if enemy label is not visible
             }
-            Rectangle playerBounds = playerLabel.getBounds();
+            Rectangle playerBounds = game.playerLabel.getBounds();
             Rectangle enemyBounds = enemyLabel.getBounds();
             if (playerBounds.intersects(enemyBounds) && game.damageOn) {
                 game.playerHP--;
@@ -78,7 +81,7 @@ public class BulletManager {
             if (bullet.isVisible() && bulletBounds.intersects(enemyBounds)) {
                 enemy.decreaseHP();
                 if (enemy.getHP() <= 0) {
-                   game.handleEnemyDestroyed(enemy);
+                    game.handleEnemyDestroyed(enemy);
                     enemyIterator.remove(); // Remove the enemy from the list
                 }
                 bullet.setVisible(false);
