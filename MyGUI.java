@@ -4,7 +4,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class MyGUI extends JFrame {
-    private JMenuBar menuBar;
     public MyGUI() {
         initializeMenuBar();
         setPreferredSize(new Dimension(500, 500));
@@ -28,11 +27,10 @@ public class MyGUI extends JFrame {
         JMenu helpMenu = new JMenu("Help");
         JMenuItem about = new JMenuItem("About");
         helpMenu.add(about);
-        menuBar = new JMenuBar();
+        JMenuBar menuBar = new JMenuBar();
         menuBar.add(fileMenu);
         menuBar.add(helpMenu);
         setJMenuBar(menuBar);
-
 
         playGame.addActionListener(new ActionListener() {
             @Override

@@ -6,27 +6,25 @@ import javax.swing.*;
 import javax.swing.Timer;
 
 public class Game extends JPanel implements KeyListener{
-    protected JLabel playerLabel;
     protected JLabel bullet;
     protected JLabel enemyLabel;
-    protected boolean damageOn = true;
     protected boolean fireAllowed;
-    private Set<Integer> pressedKeys;
+    private final Set<Integer> pressedKeys;
     protected List<Enemy> enemies;
 
-    protected boolean creatingEnemies;
-    private int playerSpeed = 7;
+
     protected int playerHP = 10; // Player's hit points
-    private int score =0;
+    protected int score =0;
     private static final double BULLET_DELAY = 2e8;
     long lastBulletTime = 0;
     long time = System.nanoTime();
     int currentTime = 0;
     int levelUpTimes = 10;
-    private BulletManager bulletManager;
-    private EntityManager entityManager = new EntityManager();
+    private final BulletManager bulletManager = new BulletManager();
+    protected EntityManager entityManager = new EntityManager();
     StatusBarManager statusBarManager = new StatusBarManager();
-
+    boolean stop = false;
+    private Timer timer;
 
     Game() {
         this.setBackground(Color.BLACK);
@@ -34,28 +32,34 @@ public class Game extends JPanel implements KeyListener{
         this.setLayout(null);
         this.setFocusable(true); // Set panel focusable
         this.addKeyListener(this);
-        entityManager.initialisePlayerLabel(this);
-        entityManager.initialiseBulletLabel(this);
+        entityManager.createPlayerLabel(this);
         pressedKeys = new HashSet<>();
         enemies = new ArrayList<>();
-        bulletManager = new BulletManager();
         statusBarManager.updateScore(0);
         statusBarManager.updateLife(5);
-        statusBarManager.setBounds(5, 5, getWidth() - 10, 50);
+        statusBarManager.setBounds(0, 0, getWidth(), getHeight());
         add(statusBarManager);
         startGameLoop();
     }
 
     private void startGameLoop() {
-        entityManager.initialiseEnemies(this, 5);
-        //createEnemies(5);
-        Timer timer = new Timer(16, e -> {
+        timer = new Timer(16, e -> {
+            if(currentTime == 0 ) entityManager.spawnEnemy(this, 5);
             currentTime = (int) ((System.nanoTime()-time)/1000000000);
-            bulletManager.bulletUpdate(playerLabel, enemies, this);
-            movePlayer(playerSpeed);
+            bulletManager.bulletLoop(this);
+            entityManager.movePlayer(this);
             entityManager.enemyLoop(this);
+
+            if (stop) {
+                timer.stop();
+                statusBarManager.gameOverTable(this, score);
+            }
         });
         timer.start();
+    }
+
+    void handleGameOver() {
+        stop=true;
     }
 
     @Override
@@ -73,7 +77,7 @@ public class Game extends JPanel implements KeyListener{
             long elapsedTime = currentTime - lastBulletTime;
 
             if (elapsedTime >= BULLET_DELAY) {
-                bulletManager.throwBullet(this);
+                bulletManager.throwBullet(this, entityManager.player, fireAllowed); // convert it into getPlayer()
                 lastBulletTime = currentTime;
             }
         }
@@ -88,53 +92,7 @@ public class Game extends JPanel implements KeyListener{
         }
     }
 
-    private void movePlayer(int playerSpeed) {
-        int x = playerLabel.getX();
-        int y = playerLabel.getY();
-        int dx = 0;
-        int dy = 0;
-
-        if (isKeyPressed(KeyEvent.VK_W)) {
-            dy -= playerSpeed;
-        }
-        if (isKeyPressed(KeyEvent.VK_A)) {
-            dx -= playerSpeed;
-        }
-        if (isKeyPressed(KeyEvent.VK_S)) {
-            dy += playerSpeed;
-        }
-        if (isKeyPressed(KeyEvent.VK_D)) {
-            dx += playerSpeed;
-        }
-
-        // Adjust for diagonal movement
-        if ((isKeyPressed(KeyEvent.VK_W) || isKeyPressed(KeyEvent.VK_S))
-                && (isKeyPressed(KeyEvent.VK_A) || isKeyPressed(KeyEvent.VK_D))) {
-            double diagonalSpeed = playerSpeed / Math.sqrt(2);
-            dx = (int) (diagonalSpeed * Math.signum(dx));
-            dy = (int) (diagonalSpeed * Math.signum(dy));
-        }
-
-        playerLabel.setLocation(x + dx, y + dy);
-
-        bulletManager.checkBulletCollision(this, bullet); // Check collision with enemies
-    }
-
-    void handleGameOver() {
-        System.exit(1);
-    }
-
-    private boolean isKeyPressed(int keyCode) {
+    boolean isKeyPressed(int keyCode) {
         return pressedKeys.contains(keyCode);
     }
-
-    protected void handleEnemyDestroyed(Enemy enemy) {
-        JLabel enemyLabel = enemy.getLabel();
-        enemyLabel.setVisible(false);
-        remove(enemyLabel);
-        repaint();
-        score++;
-        statusBarManager.updateScore(score);
-    }
-
 }

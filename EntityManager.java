@@ -1,4 +1,6 @@
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -6,44 +8,102 @@ import java.util.List;
 import java.util.Random;
 
 public class EntityManager {
+    Player player;
+    private int playerSpeed = 7;
+    protected int playerHP = 10; // Player's hit points
+
     int enemyHP = 5; // Enemy's hit points
     int enemySpeed = 1; // Enemy's movement speed
-    private String enemyOneImgName = "enemy.png";
-    private String playerImgName = "player.png";
-    private String bulletImgName = "alien1.png";
+    private String enemyOneImgName = "enemy1.png";
+
+    private boolean creatingEnemies;
     private Icon icon;
     private URL iconPath;
     private JLabel localLabel;
     private int spawnRate;
+
+
     public EntityManager(){
+
     }
 
-    public void initialisePlayerLabel(Game game){
+    public void createPlayerLabel(Game game){
         try{
+            String playerImgName = "player.png";
             iconPath = game.getClass().getResource(playerImgName);
             icon = new ImageIcon(iconPath);
             localLabel = new JLabel();
-            localLabel.setBounds(0, 0, 64, 51);
+            localLabel.setBounds(game.getWidth()/2-50, game.getHeight()-160, 55, 44);
             localLabel.setIcon(icon);
             localLabel.setOpaque(false);
-            game.playerLabel = localLabel;
-            game.add(game.playerLabel);
+            game.add(localLabel);
+            player = new Player(localLabel, playerHP, playerSpeed);
         }catch (NullPointerException e){
             System.out.println("Failed to load the player image.");
         }
     }
 
-    public void initialiseBulletLabel(Game game){
-        localLabel = new JLabel(new ImageIcon(getClass().getResource(bulletImgName)));
-        localLabel.setBounds(0, -20, 10, 20);
-        localLabel.setVisible(false);
-        game.bullet = localLabel;
-        game.setComponentZOrder(game.bullet, 1);
-        game.add(game.bullet);
+    void movePlayer(Game game) {
+        int x = player.getLabel().getX();
+        int y = player.getLabel().getY();
+        int dx = 0;
+        int dy = 0;
+
+        if (game.isKeyPressed(KeyEvent.VK_W)) {
+            dy -= playerSpeed;
+        }
+        if (game.isKeyPressed(KeyEvent.VK_A)) {
+            dx -= playerSpeed;
+        }
+        if (game.isKeyPressed(KeyEvent.VK_S)) {
+            dy += playerSpeed;
+        }
+        if (game.isKeyPressed(KeyEvent.VK_D)) {
+            dx += playerSpeed;
+        }
+
+        // Adjust for diagonal movement
+        if ((game.isKeyPressed(KeyEvent.VK_W) || game.isKeyPressed(KeyEvent.VK_S))
+                && (game.isKeyPressed(KeyEvent.VK_A) || game.isKeyPressed(KeyEvent.VK_D))) {
+            double diagonalSpeed = playerSpeed / Math.sqrt(2);
+            dx = (int) (diagonalSpeed * Math.signum(dx));
+            dy = (int) (diagonalSpeed * Math.signum(dy));
+        }
+        player.getLabel().setLocation(x + dx, y + dy);
+        //game.playerLabel.setLocation(x + dx, y + dy);
+        checkPlayerCollision(game);
     }
 
-    public void initialiseEnemies(Game game, int count) {
-        game.creatingEnemies = true;
+    private void checkPlayerCollision(Game game){
+        Iterator<Enemy> enemyIterator = game.enemies.iterator();
+        while (enemyIterator.hasNext()) {
+            Enemy enemy = enemyIterator.next();
+            JLabel enemyLabel = enemy.getLabel();
+            if (!enemyLabel.isVisible()) {
+                continue; // Skip collision detection if enemy label is not visible
+            }
+
+            Rectangle playerBounds = player.getLabel().getBounds();
+            //Rectangle playerBounds = game.playerLabel.getBounds();
+            Rectangle enemyBounds = enemyLabel.getBounds();
+            if (playerBounds.intersects(enemyBounds)) {
+                player.decreaseHP();
+                if (player.getHP() <= 0) {
+                    game.handleGameOver();
+                }
+            }
+        }
+    }
+
+    public void enemyLoop(Game game){
+        //if(game.currentTime == 0)  initialiseEnemies(game, 5);
+        moveEnemies(game);
+        spawnEnemy(game, spawnRate);
+        System.out.println(game.currentTime);
+    }
+
+    private void initialiseEnemies(Game game, int count) { // original method
+        creatingEnemies = true;
         var createEnemies = new Thread(() -> {
             Random random = new Random();
             for (int i = 0; i < count; i++) {
@@ -52,33 +112,27 @@ public class EntityManager {
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-
                 int x = random.nextInt(game.getWidth() - 50); // Random x position
                 int y = -50; // Starting position above the screen
-
-                iconPath = getClass().getResource(enemyOneImgName);
-                if (iconPath == null) {
-                    System.out.println("Failed to load the enemy image.");
-                    return;
-                }
-                icon = new ImageIcon(iconPath);
-                localLabel = new JLabel(icon);
-                localLabel.setBounds(x,y,64,64);
-
-                game.enemyLabel = localLabel;
-                Enemy enemy = new Enemy(game.enemyLabel, enemyHP, enemySpeed);
-                game.enemies.add(enemy);
-                game.add(game.enemyLabel);
+                createEnemyLabel(game, x, y);
             }
-            game.creatingEnemies = false;
+            creatingEnemies = false;
         });
         createEnemies.start();
     }
-
-    public void enemyLoop(Game game){
-        moveEnemies(game);
-        spawnEnemy(game, spawnRate);
-        System.out.println(game.currentTime);
+    private void createEnemyLabel(Game game, int x, int y){
+        iconPath = getClass().getResource(enemyOneImgName);
+        if (iconPath == null) {
+            System.out.println("Failed to load the enemy image.");
+            return;
+        }
+        icon = new ImageIcon(iconPath);
+        localLabel = new JLabel(icon);
+        localLabel.setBounds(x,y,icon.getIconWidth(),icon.getIconHeight());
+        game.enemyLabel = localLabel;
+        Enemy enemy = new Enemy(game.enemyLabel, enemyHP, enemySpeed);
+        game.enemies.add(enemy);
+        game.add(game.enemyLabel);
     }
 
     private void moveEnemies(Game game){
@@ -107,55 +161,15 @@ public class EntityManager {
     }
 
     public void spawnEnemy(Game game,int count){
-        if (game.enemies.isEmpty() && !game.creatingEnemies) initialiseEnemies(game, count);
+        if (game.enemies.isEmpty() && !creatingEnemies) initialiseEnemies(game, count);
         spawnerUpdater(game);
     }
 
     private void spawnerUpdater(Game game){
         if(game.currentTime == game.levelUpTimes){
             spawnRate += game.currentTime / 1.5;
-            game.levelUpTimes*=3/2;
+            game.levelUpTimes*= 3.0 /2;
         }
     }
-
-
-
-
-
-    public void initialiseEnemies1(Game game, int count) {
-        Thread initialise = new Thread(() -> {
-            for (int i = 0; i < count; i++) {
-                try {
-                    if (game.currentTime % 10 == 0 && game.currentTime != 0) {
-                        Random random = new Random();
-                        int x = random.nextInt(game.getWidth() - 50); // Random x position
-                        int y = -50; // Starting position above the screen
-
-                        URL enemyURL = getClass().getResource("enemy.png");
-                        if (enemyURL == null) {
-                            System.out.println("Failed to load the enemy image.");
-                            return;
-                        }
-
-                        ImageIcon enemyIcon = new ImageIcon(enemyURL);
-                        JLabel enemyLabel = new JLabel(enemyIcon);
-                        enemyLabel.setBounds(x, y, 64, 64);
-                        int enemyHP = 5; // Enemy's hit points
-                        int enemySpeed = 1; // Enemy's movement speed
-                        Enemy enemy = new Enemy(enemyLabel, enemyHP, enemySpeed);
-                        game.enemies.add(enemy);
-                        game.add(enemyLabel);
-                    }
-
-                    Thread.sleep(10000); // Delay for 10 seconds
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
-
-        initialise.start();
-    }
-
 }
 
