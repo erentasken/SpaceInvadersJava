@@ -17,35 +17,32 @@ public class Game extends JPanel implements KeyListener{
     protected boolean creatingEnemies;
     private int playerSpeed = 7;
     protected int playerHP = 10; // Player's hit points
-    Scoreboard scoreboard = new Scoreboard();;
     private int score =0;
     private static final double BULLET_DELAY = 2e8;
     long lastBulletTime = 0;
     long time = System.nanoTime();
     int currentTime = 0;
     int levelUpTimes = 10;
-
-
-
     private BulletManager bulletManager;
     private EntityManager entityManager = new EntityManager();
+    StatusBarManager statusBarManager = new StatusBarManager();
+
 
     Game() {
         this.setBackground(Color.BLACK);
-        this.add(scoreboard);
         this.setSize(500, 500);
         this.setLayout(null);
         this.setFocusable(true); // Set panel focusable
         this.addKeyListener(this);
-
-
         entityManager.initialisePlayerLabel(this);
         entityManager.initialiseBulletLabel(this);
         pressedKeys = new HashSet<>();
         enemies = new ArrayList<>();
         bulletManager = new BulletManager();
-
-
+        statusBarManager.updateScore(0);
+        statusBarManager.updateLife(5);
+        statusBarManager.setBounds(5, 5, getWidth() - 10, 50);
+        add(statusBarManager);
         startGameLoop();
     }
 
@@ -57,7 +54,6 @@ public class Game extends JPanel implements KeyListener{
             bulletManager.bulletUpdate(playerLabel, enemies, this);
             movePlayer(playerSpeed);
             entityManager.enemyLoop(this);
-            repaint();
         });
         timer.start();
     }
@@ -138,7 +134,7 @@ public class Game extends JPanel implements KeyListener{
         remove(enemyLabel);
         repaint();
         score++;
-        scoreboard.updateScore(score);
+        statusBarManager.updateScore(score);
     }
 
 }

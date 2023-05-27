@@ -9,6 +9,7 @@ public class MyGUI extends JFrame {
         initializeMenuBar();
         setPreferredSize(new Dimension(500, 500));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());//
         pack();
         setLocationRelativeTo(null);
         setVisible(true);
@@ -32,6 +33,7 @@ public class MyGUI extends JFrame {
         menuBar.add(helpMenu);
         setJMenuBar(menuBar);
 
+
         playGame.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -39,7 +41,7 @@ public class MyGUI extends JFrame {
                     @Override
                     public void run() {
                         Game game = new Game();
-                        add(game);
+                        add(game, BorderLayout.CENTER);//add(game);
                         game.requestFocusInWindow();
                     }
                 });

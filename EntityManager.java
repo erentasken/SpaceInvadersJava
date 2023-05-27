@@ -9,7 +9,7 @@ public class EntityManager {
     int enemyHP = 5; // Enemy's hit points
     int enemySpeed = 1; // Enemy's movement speed
     private String enemyOneImgName = "enemy.png";
-    private String playerImgName = "SpaceShip.png";
+    private String playerImgName = "player.png";
     private String bulletImgName = "alien1.png";
     private Icon icon;
     private URL iconPath;
@@ -17,12 +17,13 @@ public class EntityManager {
     private int spawnRate;
     public EntityManager(){
     }
+
     public void initialisePlayerLabel(Game game){
         try{
             iconPath = game.getClass().getResource(playerImgName);
             icon = new ImageIcon(iconPath);
             localLabel = new JLabel();
-            localLabel.setBounds(0, 0, 60, 62);
+            localLabel.setBounds(0, 0, 64, 51);
             localLabel.setIcon(icon);
             localLabel.setOpaque(false);
             game.playerLabel = localLabel;
@@ -37,6 +38,7 @@ public class EntityManager {
         localLabel.setBounds(0, -20, 10, 20);
         localLabel.setVisible(false);
         game.bullet = localLabel;
+        game.setComponentZOrder(game.bullet, 1);
         game.add(game.bullet);
     }
 
@@ -76,6 +78,7 @@ public class EntityManager {
     public void enemyLoop(Game game){
         moveEnemies(game);
         spawnEnemy(game, spawnRate);
+        System.out.println(game.currentTime);
     }
 
     private void moveEnemies(Game game){
@@ -119,31 +122,40 @@ public class EntityManager {
 
 
 
-    public void initialiseEnemies1(Game game,int count){ // sequential enemy spawner
-        game.creatingEnemies = true;
-        Random random = new Random();
-        for (int i = 0; i < count; i++) {
-            if(game.currentTime == 5){
-                int x = random.nextInt(game.getWidth() - 50); // Random x position
-                int y = -50; // Starting position above the screen
+    public void initialiseEnemies1(Game game, int count) {
+        Thread initialise = new Thread(() -> {
+            for (int i = 0; i < count; i++) {
+                try {
+                    if (game.currentTime % 10 == 0 && game.currentTime != 0) {
+                        Random random = new Random();
+                        int x = random.nextInt(game.getWidth() - 50); // Random x position
+                        int y = -50; // Starting position above the screen
 
-                URL enemyURL = getClass().getResource("enemy.png");
-                if (enemyURL == null) {
-                    System.out.println("Failed to load the enemy image.");
-                    return;
+                        URL enemyURL = getClass().getResource("enemy.png");
+                        if (enemyURL == null) {
+                            System.out.println("Failed to load the enemy image.");
+                            return;
+                        }
+
+                        ImageIcon enemyIcon = new ImageIcon(enemyURL);
+                        JLabel enemyLabel = new JLabel(enemyIcon);
+                        enemyLabel.setBounds(x, y, 64, 64);
+                        int enemyHP = 5; // Enemy's hit points
+                        int enemySpeed = 1; // Enemy's movement speed
+                        Enemy enemy = new Enemy(enemyLabel, enemyHP, enemySpeed);
+                        game.enemies.add(enemy);
+                        game.add(enemyLabel);
+                    }
+
+                    Thread.sleep(10000); // Delay for 10 seconds
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
-
-                ImageIcon enemyIcon = new ImageIcon(enemyURL);
-                JLabel enemyLabel = new JLabel(enemyIcon);
-                enemyLabel.setBounds(x, y, 64, 64);
-                int enemyHP = 5; // Enemy's hit points
-                int enemySpeed = 1; // Enemy's movement speed
-                Enemy enemy = new Enemy(enemyLabel, enemyHP, enemySpeed);
-                game.enemies.add(enemy);
-                game.add(enemyLabel);
             }
-        }
-        game.creatingEnemies = false;
+        });
+
+        initialise.start();
     }
+
 }
 

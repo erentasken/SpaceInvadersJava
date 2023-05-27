@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 
 public class BulletManager {
-    private String bulletImgName = "laserbolt-1.png";
+    private String bulletImgName = "ammo2.png";
     private URL iconPath;
     private Icon icon;
     private JLabel localLabel;
@@ -26,7 +26,7 @@ public class BulletManager {
             JLabel bullet = iterator.next();
             int bulletX = bullet.getX();
             int bulletY = bullet.getY();
-            bullet.setLocation(bulletX, bulletY-10);
+            bullet.setLocation(bulletX, bulletY-7);
             bullet.setVisible(true);
             checkBulletCollision(game, bullet);
             if(!bullet.isVisible() || bullet.getY() < -bullet.getHeight()){
@@ -54,14 +54,17 @@ public class BulletManager {
         icon = new ImageIcon(iconPath);
         localLabel = new JLabel(icon);
         localLabel.setOpaque(false);
-        localLabel.setBounds(spaceshipX + 13, spaceshipY - 20, 30, 30);
+        localLabel.setBounds(spaceshipX + 15, spaceshipY - 20, 30, 30);
         localLabel.setVisible(true);
+
         game.add(localLabel);
         bullets.add(localLabel);
 
     }
 
     public void checkBulletCollision(Game game, JLabel bullet){
+
+
         Iterator<Enemy> enemyIterator = game.enemies.iterator();
         while (enemyIterator.hasNext()) {
             Enemy enemy = enemyIterator.next();
@@ -69,6 +72,7 @@ public class BulletManager {
             if (!enemyLabel.isVisible()) {
                 continue; // Skip collision detection if enemy label is not visible
             }
+
             Rectangle playerBounds = game.playerLabel.getBounds();
             Rectangle enemyBounds = enemyLabel.getBounds();
             if (playerBounds.intersects(enemyBounds) && game.damageOn) {
@@ -77,6 +81,7 @@ public class BulletManager {
                     game.handleGameOver();
                 }
             }
+
             Rectangle bulletBounds = bullet.getBounds();
             if (bullet.isVisible() && bulletBounds.intersects(enemyBounds)) {
                 enemy.decreaseHP();
@@ -88,5 +93,42 @@ public class BulletManager {
             }
 
         }
+
+        URL otherIconPath = getClass().getResource("ammo1.png");
+        URL otherIcon1Path = getClass().getResource("ammo2.png");
+        Thread bulletAnimation = new Thread(()->{
+            boolean flag = true;
+            while(bullet.isVisible()) {
+                Icon otherIcon1 = null;
+                if (flag) {
+                    Icon otherIcon = null;
+                    otherIcon1 = null;
+                    if (otherIconPath == null) System.out.println("Ammo2 icon path null");
+                    else otherIcon = new ImageIcon(otherIconPath);
+                    bullet.setIcon(otherIcon);
+                    flag = false;
+                    System.out.println("mario");
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    continue;
+                }
+                if (otherIconPath == null) System.out.println("Ammo1 icon path null");
+                else otherIcon1 = new ImageIcon(otherIcon1Path);
+                bullet.setIcon(otherIcon1);
+                System.out.println("yesss");
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                flag = true;
+            }
+        });
+        bulletAnimation.start();
+
+
     }
 }
