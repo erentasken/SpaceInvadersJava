@@ -5,7 +5,7 @@ public class StatusBarManager extends JPanel {
     private JLabel scoreLabel;
     private JLabel lifeLabel;
 
-    public StatusBarManager() {
+    public StatusBarManager(Game game) {
         setOpaque(false);
 
         scoreLabel = new JLabel("Score: 0");
@@ -16,9 +16,9 @@ public class StatusBarManager extends JPanel {
         lifeLabel.setFont(new Font("Arial", Font.BOLD, 15));
         lifeLabel.setForeground(Color.WHITE);
 
-        add(scoreLabel);
-        add(Box.createRigidArea(new Dimension(10, 0))); // Add spacing between labels
+        add(Box.createRigidArea(new Dimension(50, 0))); // Add spacing between labels
         add(lifeLabel);
+        add(scoreLabel);
     }
 
     public void gameOverTable(Game game, int score) {

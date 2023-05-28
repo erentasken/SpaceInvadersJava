@@ -14,14 +14,16 @@ public class EntityManager {
 
     int enemyHP = 5; // Enemy's hit points
     int enemySpeed = 1; // Enemy's movement speed
-    private String enemyOneImgName = "enemy1.png";
+    private String enemyOneImgName = "./icons/enemyIcons/enemy1.png";
 
     private boolean creatingEnemies;
     private Icon icon;
     private URL iconPath;
     private JLabel localLabel;
     private int spawnRate;
-
+    int counter = 0;
+    boolean untouchable = false;
+    int horizontalMoveEnemy=1;
 
     public EntityManager(){
 
@@ -29,19 +31,22 @@ public class EntityManager {
 
     public void createPlayerLabel(Game game){
         try{
-            String playerImgName = "player.png";
+            String playerImgName = "./icons/playerIcons/player.png";
             iconPath = game.getClass().getResource(playerImgName);
             icon = new ImageIcon(iconPath);
             localLabel = new JLabel();
             localLabel.setBounds(game.getWidth()/2-50, game.getHeight()-160, 55, 44);
             localLabel.setIcon(icon);
             localLabel.setOpaque(false);
+
             game.add(localLabel);
+            //game.layeredPane.add(localLabel);
             player = new Player(localLabel, playerHP, playerSpeed);
         }catch (NullPointerException e){
             System.out.println("Failed to load the player image.");
         }
     }
+
 
     void movePlayer(Game game) {
         int x = player.getLabel().getX();
@@ -61,7 +66,6 @@ public class EntityManager {
         if (game.isKeyPressed(KeyEvent.VK_D)) {
             dx += playerSpeed;
         }
-
         // Adjust for diagonal movement
         if ((game.isKeyPressed(KeyEvent.VK_W) || game.isKeyPressed(KeyEvent.VK_S))
                 && (game.isKeyPressed(KeyEvent.VK_A) || game.isKeyPressed(KeyEvent.VK_D))) {
@@ -69,13 +73,25 @@ public class EntityManager {
             dx = (int) (diagonalSpeed * Math.signum(dx));
             dy = (int) (diagonalSpeed * Math.signum(dy));
         }
+
+        playerAnimation();
+
         player.getLabel().setLocation(x + dx, y + dy);
-        //game.playerLabel.setLocation(x + dx, y + dy);
         checkPlayerCollision(game);
     }
 
+    private void playerAnimation(){
+        String playerImgName;
+        if(counter%2==0)  playerImgName = "./icons/playerIcons/player.png";
+        else playerImgName = "./icons/playerIcons/player.png";
+        counter++;
+        iconPath = this.getClass().getResource(playerImgName);
+        icon = new ImageIcon(iconPath);
+        player.getLabel().setIcon(icon);
+    }
+
     private void checkPlayerCollision(Game game){
-        Iterator<Enemy> enemyIterator = game.enemies.iterator();
+        Iterator<Enemy> enemyIterator = game.enemyList.iterator();
         while (enemyIterator.hasNext()) {
             Enemy enemy = enemyIterator.next();
             JLabel enemyLabel = enemy.getLabel();
@@ -86,8 +102,20 @@ public class EntityManager {
             Rectangle playerBounds = player.getLabel().getBounds();
             //Rectangle playerBounds = game.playerLabel.getBounds();
             Rectangle enemyBounds = enemyLabel.getBounds();
-            if (playerBounds.intersects(enemyBounds)) {
+            if (playerBounds.intersects(enemyBounds) && !untouchable) {
                 player.decreaseHP();
+                game.statusBarManager.updateLife(player.getHP());
+                Thread untouchablePlayer = new Thread(()->{
+                    untouchable = true;
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    untouchable = false;
+                });
+                untouchablePlayer.start();
+
                 if (player.getHP() <= 0) {
                     game.handleGameOver();
                 }
@@ -96,10 +124,8 @@ public class EntityManager {
     }
 
     public void enemyLoop(Game game){
-        //if(game.currentTime == 0)  initialiseEnemies(game, 5);
         moveEnemies(game);
         spawnEnemy(game, spawnRate);
-        System.out.println(game.currentTime);
     }
 
     private void initialiseEnemies(Game game, int count) { // original method
@@ -107,6 +133,7 @@ public class EntityManager {
         var createEnemies = new Thread(() -> {
             Random random = new Random();
             for (int i = 0; i < count; i++) {
+                if(game.stop) break;
                 try {
                     Thread.sleep(2000);
                 } catch (InterruptedException e) {
@@ -131,12 +158,12 @@ public class EntityManager {
         localLabel.setBounds(x,y,icon.getIconWidth(),icon.getIconHeight());
         game.enemyLabel = localLabel;
         Enemy enemy = new Enemy(game.enemyLabel, enemyHP, enemySpeed);
-        game.enemies.add(enemy);
-        game.add(game.enemyLabel);
+        game.enemyList.add(enemy);
+        game.layeredPane.add(game.enemyLabel);
     }
 
     private void moveEnemies(Game game){
-        Iterator<Enemy> iterator = game.enemies.iterator();
+        Iterator<Enemy> iterator = game.enemyList.iterator();
         List<JLabel> labelsToRemove = new ArrayList<>();
         while (iterator.hasNext()) {
             Enemy enemy = iterator.next();
@@ -144,6 +171,10 @@ public class EntityManager {
             int x = enemyLabel.getX();
             int y = enemyLabel.getY();
             int dy = enemy.getSpeed();
+
+            if(x >= game.getWidth()-enemyLabel.getWidth()) horizontalMoveEnemy = -1;
+            if(x<= 0) horizontalMoveEnemy = 1;
+            x += horizontalMoveEnemy;
 
             enemyLabel.setLocation(x, y + dy);
 
@@ -156,12 +187,14 @@ public class EntityManager {
         // Remove the marked labels from the container
         for (JLabel label : labelsToRemove) {
             game.remove(label);
+            game.layeredPane.remove(label);
         }
+        game.layeredPane.repaint();
         game.repaint(); // Repaint the container to update the UI
     }
 
     public void spawnEnemy(Game game,int count){
-        if (game.enemies.isEmpty() && !creatingEnemies) initialiseEnemies(game, count);
+        if (game.enemyList.isEmpty() && !creatingEnemies) initialiseEnemies(game, count);
         spawnerUpdater(game);
     }
 
@@ -172,4 +205,6 @@ public class EntityManager {
         }
     }
 }
+
+
 

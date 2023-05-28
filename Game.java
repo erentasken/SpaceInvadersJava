@@ -6,14 +6,12 @@ import javax.swing.*;
 import javax.swing.Timer;
 
 public class Game extends JPanel implements KeyListener{
-    protected JLabel bullet;
     protected JLabel enemyLabel;
     protected boolean fireAllowed;
     private final Set<Integer> pressedKeys;
-    protected List<Enemy> enemies;
+    protected List<Enemy> enemyList;
 
 
-    protected int playerHP = 10; // Player's hit points
     protected int score =0;
     private static final double BULLET_DELAY = 2e8;
     long lastBulletTime = 0;
@@ -22,40 +20,49 @@ public class Game extends JPanel implements KeyListener{
     int levelUpTimes = 10;
     private final BulletManager bulletManager = new BulletManager();
     protected EntityManager entityManager = new EntityManager();
-    StatusBarManager statusBarManager = new StatusBarManager();
+    StatusBarManager statusBarManager = new StatusBarManager(this);
     boolean stop = false;
     private Timer timer;
 
+    Background background;
+    JLayeredPane layeredPane = new JLayeredPane();
     Game() {
+        layeredPane.setBounds(0,0,500,500);
+        add(layeredPane);
+        statusBarManager = new StatusBarManager(this);
+
         this.setBackground(Color.BLACK);
         this.setSize(500, 500);
+        setPreferredSize(new Dimension(500,500));
         this.setLayout(null);
         this.setFocusable(true); // Set panel focusable
         this.addKeyListener(this);
         entityManager.createPlayerLabel(this);
         pressedKeys = new HashSet<>();
-        enemies = new ArrayList<>();
+        enemyList = new ArrayList<>();
         statusBarManager.updateScore(0);
-        statusBarManager.updateLife(5);
+        statusBarManager.updateLife(10);
         statusBarManager.setBounds(0, 0, getWidth(), getHeight());
-        add(statusBarManager);
+        layeredPane.add(statusBarManager);
         startGameLoop();
     }
 
     private void startGameLoop() {
+        background = new Background(this);
         timer = new Timer(16, e -> {
-            if(currentTime == 0 ) entityManager.spawnEnemy(this, 5);
-            currentTime = (int) ((System.nanoTime()-time)/1000000000);
-            bulletManager.bulletLoop(this);
-            entityManager.movePlayer(this);
-            entityManager.enemyLoop(this);
-
             if (stop) {
                 timer.stop();
                 statusBarManager.gameOverTable(this, score);
+            }else{
+                if(currentTime == 0 ) entityManager.spawnEnemy(this, 5);
+                currentTime = (int) ((System.nanoTime()-time)/1000000000);
+                bulletManager.bulletLoop(this);
+                entityManager.movePlayer(this);
+                entityManager.enemyLoop(this);
             }
         });
         timer.start();
+
     }
 
     void handleGameOver() {
@@ -96,3 +103,5 @@ public class Game extends JPanel implements KeyListener{
         return pressedKeys.contains(keyCode);
     }
 }
+
+
