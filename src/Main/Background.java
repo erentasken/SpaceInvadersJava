@@ -102,4 +102,17 @@ public class Background {
         ImageIcon tileIcon = tileIcons[tileIndex];
         tileLabel.setIcon(tileIcon);
     }
+    
+    public void deleteBackground() {
+        // Remove all the tile labels
+        for (int row = 0; row < numVerticalTiles; row++) {
+            for (int col = 0; col < tileLabels[row].length; col++) {
+                JLabel tileLabel = tileLabels[row][col];
+                game.remove(tileLabel);
+            }
+        }
+
+        // Repaint the game panel to reflect the changes
+        game.repaint();
+    }
 }

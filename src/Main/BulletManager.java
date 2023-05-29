@@ -7,12 +7,11 @@ import java.util.Iterator;
 import java.util.List;
 
 public class BulletManager {
-    private final List bulletList;
+    private final List<JLabel> bulletList;
     public BulletManager(){
-        bulletList = new ArrayList();
+        bulletList = new ArrayList<JLabel>();
     }
     public void bulletLoop(Game game){
-        System.out.println(bulletList.size());
         if(!bulletList.isEmpty()){
             Iterator<JLabel> iterator = bulletList.iterator();
             while(iterator.hasNext()){
@@ -36,7 +35,6 @@ public class BulletManager {
         int spaceshipX = player.getLabel().getX();
         int spaceshipY = player.getLabel().getY();
         String bulletImgName = "/icons/bulletIcons/ammo1.png";
-        //String bulletImgName = "icons/bulletIcons/ammo1.png";
         URL iconPath = getClass().getResource(bulletImgName);
         if (iconPath == null) {
             System.out.println("Failed to load the ammo image.");
@@ -59,6 +57,7 @@ public class BulletManager {
         localLabel.setVisible(true);
         game.layeredPane.add(localLabel);
         bulletList.add(localLabel);
+        
     }
 
     public void checkBulletCollision(Game game, JLabel bullet){
