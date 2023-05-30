@@ -10,23 +10,23 @@ import java.util.List;
 import java.util.Random;
 
 public class EntityManager {
-	public Player player;
-	private int playerSpeed = 5;
+	public Player player; 
+	private int playerSpeed = 5; 
 	private int playerHP = 3; // Player's hit points
-
+	private int counter = 0; // counter for player animation 
+	private boolean untouchable = false; // after player taken a damage, there will be untouchable time interval.
+	
+	public List<Enemy> enemyList;
 	private int enemyHP = 5; // Enemy's hit points
 	private int enemySpeed = 1; // Enemy's movement speed
-
-	private boolean creatingEnemies;
+	private int horizontalMoveEnemy = 1;
+	private boolean creatingEnemies; // controlling the period of enemy spawning
+	private int enemySpawnRate; // time by time spawned enemy count is increasing
+	
 	private Icon icon;
 	private URL iconPath;
 	private JLabel localLabel;
-	private int spawnRate;
-	int counter = 0;
-	boolean untouchable = false;
-	int horizontalMoveEnemy = 1;
 	
-	public List<Enemy> enemyList;
 
 	public EntityManager() {
 		enemyList = new ArrayList<Enemy>();
@@ -40,10 +40,8 @@ public class EntityManager {
 			localLabel = new JLabel();
 			localLabel.setBounds(game.getWidth() / 2 - 50, game.getHeight() - 160, icon.getIconWidth(), icon.getIconHeight());
 			localLabel.setIcon(icon);
-			localLabel.setOpaque(false);
-
+			//localLabel.setOpaque(false);
 			game.add(localLabel);
-			// game.layeredPane.add(localLabel);
 			player = new Player(localLabel, playerHP, playerSpeed);
 		} catch (NullPointerException e) {
 			System.out.println("Failed to load the player image.");
@@ -101,12 +99,9 @@ public class EntityManager {
 		while (enemyIterator.hasNext()) {
 			Enemy enemy = enemyIterator.next();
 			JLabel enemyLabel = enemy.getLabel();
-			if (!enemyLabel.isVisible()) {
-				continue; // Skip collision detection if enemy label is not visible
-			}
+			
 
 			Rectangle playerBounds = player.getLabel().getBounds();
-			// Rectangle playerBounds = game.playerLabel.getBounds();
 			Rectangle enemyBounds = enemyLabel.getBounds();
 			if (playerBounds.intersects(enemyBounds) && !untouchable) {
 				player.decreaseHP();
@@ -131,7 +126,7 @@ public class EntityManager {
 
 	public void enemyLoop(Game game) {
 		moveEnemies(game);
-		spawnEnemy(game, spawnRate);
+		spawnEnemy(game, enemySpawnRate);
 	}
 
 	private void initialiseEnemies(Game game, int count) { // original method
@@ -145,19 +140,19 @@ public class EntityManager {
 					e.printStackTrace();
 				}
 			}
-			if(game.reset || game.gameOver) return;
+			if(game.reset || game.gameOver || game.resume) 
+				return;
+			
 			Random random = new Random();
 			for (int i = 0; i < count; i++) {
-				if (game.reset || game.gameOver) {
-					System.out.println("hello");
-					break;
-				}
-					
+				if (game.reset || game.gameOver || game.resume) break;
+				
 				try {
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);
 				}
+				
 				int x = random.nextInt(game.getWidth() - 50); // Random x position
 				int y = -50; // Starting position above the screen
 				createEnemyLabel(game, x, y);
@@ -188,10 +183,11 @@ public class EntityManager {
 	
 	private void enemyAnimation(Game game, JLabel enemy) {
 		Thread animationThread = new Thread(()->{
-			if(game.reset || game.gameOver)return;
+			if(game.reset || game.gameOver || game.resume)return;
 			
 			int counterEnemyAnimation = 0;
 			while (enemy.isVisible()){
+				if(game.reset || game.gameOver || game.resume)return;
 		    	String enemyImageName = null;
 		    	URL iconPath;
 		      	switch (counterEnemyAnimation % 4) {
@@ -212,7 +208,7 @@ public class EntityManager {
 		      	if (iconPath != null) {
 		      		ImageIcon icon = new ImageIcon(iconPath);
 		            enemy.setIcon(icon);
-		        }else System.out.println("can't uploaded the png");
+		        }else System.out.println("can't uploaded the enemy png");
 		        counterEnemyAnimation++;
 		        try {
 					Thread.sleep(500);
@@ -231,17 +227,15 @@ public class EntityManager {
 	
 	public void deleteAllEnemies(Game game) {
 		Iterator<Enemy> iterator = enemyList.iterator();
-		// = "/icons/playerIcons/player.png";
 		while (iterator.hasNext()) {
 			Enemy enemy = iterator.next();
 			JLabel enemyLabel = enemy.getLabel();
 			game.remove(enemyLabel);
 			game.layeredPane.remove(enemyLabel);
-			game.repaint();
-			game.layeredPane.repaint();
 			iterator.remove();
 		}
-
+		game.repaint();
+		game.layeredPane.repaint();
 	}
 
 	private void moveEnemies(Game game) {
@@ -271,7 +265,6 @@ public class EntityManager {
 				iterator.remove();
 				labelsToRemove.add(enemyLabel);
 			}
-			//if(!labelsToRemove.contains(enemyLabel)) enemyAnimation(enemyLabel, counterEnemyAnimation++);
 		}
 		// Remove the marked labels from the container
 		for (JLabel label : labelsToRemove) {
@@ -291,7 +284,7 @@ public class EntityManager {
 
 	private void spawnerUpdater(Game game) {
 		if (game.stopWatch == game.levelUpTimes) {
-			spawnRate += game.stopWatch / 1.5;
+			enemySpawnRate += game.stopWatch / 1.5;
 			game.levelUpTimes *= 3.0 / 2;
 		}
 	}

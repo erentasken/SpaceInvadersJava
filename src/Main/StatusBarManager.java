@@ -76,31 +76,11 @@ public class StatusBarManager extends JPanel {
         Icon icon1 = new ImageIcon(iconPath);
         localLabel.setIcon(icon1);
     }
+    
+    public void deleteGameOverTable(Game game) {
+    	if(localLabel!=null) remove(localLabel);
+    }
 
-//    public void gameOverTable(Game game, int score) {
-//        remove(scoreLabel);
-//        remove(lifeLabel);
-//        remove(FPSlabel);
-//        setLayout(null);
-//        JLabel gameOverLabel = new JLabel("Game Over");
-//        gameOverLabel.setLayout(null);
-//        gameOverLabel.setFont(new Font("Arial", Font.BOLD, 24));
-//        gameOverLabel.setHorizontalAlignment(SwingConstants.CENTER);
-//        gameOverLabel.setForeground(Color.WHITE);
-//
-//        JLabel scoreLabel = new JLabel("Your Score: " + score);
-//        scoreLabel.setFont(new Font("Arial", Font.BOLD, 18));
-//        scoreLabel.setHorizontalAlignment(SwingConstants.CENTER);
-//        scoreLabel.setForeground(Color.WHITE);
-//
-//        setLayout(new BorderLayout()); // Set the layout manager of the status bar panel
-//        add(gameOverLabel, BorderLayout.NORTH);
-//
-//        add(scoreLabel, BorderLayout.CENTER);
-//
-//        revalidate();
-//        repaint();
-//    }
     
     public void updateFPS(int FPS) {
     	FPSlabel.setText("FPS: " + FPS);

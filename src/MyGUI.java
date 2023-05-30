@@ -1,4 +1,7 @@
 import javax.swing.*;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
+
 import java.util.HashMap;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -64,6 +67,50 @@ public class MyGUI extends JFrame {
         menuBar.add(fileMenu);
         menuBar.add(helpMenu);
         this.setJMenuBar(menuBar);
+        
+        fileMenu.addMenuListener(new MenuListener() {
+            @Override
+            public void menuSelected(MenuEvent e) {
+                // Menu has been opened
+            	if(currentGame!=null)currentGame.resumeGame(true);
+                System.out.println("Menu opened");
+            }
+
+            @Override
+            public void menuDeselected(MenuEvent e) {
+                // Menu has been closed
+            	if(currentGame!=null)currentGame.resumeGame(false);
+                System.out.println("Menu closed");
+            }
+
+            @Override
+            public void menuCanceled(MenuEvent e) {
+                // Menu has been canceled (e.g., user clicks outside the menu)
+                System.out.println("Menu canceled");
+            }
+        });
+        
+        helpMenu.addMenuListener(new MenuListener() {
+            @Override
+            public void menuSelected(MenuEvent e) {
+                // Menu has been opened
+            	if(currentGame!=null)currentGame.resumeGame(true);
+                System.out.println("Menu opened");
+            }
+
+            @Override
+            public void menuDeselected(MenuEvent e) {
+                // Menu has been closed
+            	if(currentGame!=null)currentGame.resumeGame(false);
+                System.out.println("Menu closed");
+            }
+
+            @Override
+            public void menuCanceled(MenuEvent e) {
+                // Menu has been canceled (e.g., user clicks outside the menu)
+                System.out.println("Menu canceled");
+            }
+        });
 
         
         highScore.addActionListener(new ActionListener() {
@@ -115,30 +162,17 @@ public class MyGUI extends JFrame {
                         currentGame = game;
                         Thread stopIndicatorThread = new Thread(()->{
                     		while(!currentGame.reset) {
+                    			if(currentGame.gameOver) {
+                    				System.out.println("gameover");
+                    				saveTheScore();
+                    				break;
+                    			}
                     			System.out.print("");
                     			continue;
                     		}
-                    		int score = currentGame.score;
-                       		int counter = 0;
-                    		String output = null;
-                    		//player clicked play game 
-                    		//when the game is running 
-                    		System.out.println("reseting the game");
-                    		
-                    		for(Entry<String, String> entry: playerInfo.entrySet()){
-                                if(counter == playerNumber){
-                                    output = entry.getKey();
-                                }
-                                counter++;
+                    		if(!currentGame.gameOver) {
+                    			saveTheScore();
                     		}
-                            System.out.println("The key for value " + output + " is the score : " + score);
-                            try {
-								scoreBoard.writeToFile(output, score);
-							} catch (IOException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-                            
                     	});
                     	stopIndicatorThread.start();
                     }
@@ -153,6 +187,29 @@ public class MyGUI extends JFrame {
                 System.exit(0);
             }
         });
+    }
+    
+    public void saveTheScore() {
+		int score = currentGame.score;
+   		int counter = 0;
+		String output = null;
+		//player clicked play game 
+		//when the game is running 
+		System.out.println("reseting the game");
+		
+		for(Entry<String, String> entry: playerInfo.entrySet()){
+            if(counter == playerNumber){
+                output = entry.getKey();
+            }
+            counter++;
+		}
+        System.out.println("The key for value " + output + " is the score : " + score);
+        try {
+			scoreBoard.writeToFile(output, score);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
     
     public static void main(String[] args) {

@@ -1,8 +1,10 @@
 package Main;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
 import java.util.*;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.concurrent.CountDownLatch;
 
 import javax.swing.*;
@@ -37,12 +39,16 @@ public class Game extends JPanel implements KeyListener{
     
     public boolean wait = false;
 
+    
+    SoundManager soundManager = new SoundManager();
+    
     public Game() {
     	pressedKeys = new HashSet<>();
     }
      
     public boolean startGame() {
     	setTheFrame();
+    	soundManager.startGameSound();
     	entityManager.createPlayerLabel(this);
     	statusBarManager.updateScore(0);
     	statusBarManager.updateLife(3);
@@ -60,26 +66,26 @@ public class Game extends JPanel implements KeyListener{
             entityManager.deleteAllEnemies(this);
             entityManager.deletePlayer(this);
             bulletManager.deleteAllBullets(this);
+            soundManager.stopGameSound();
     	}
     }
 
     private void startGameLoop() {
         background = new Background(this);
-        timer = new Timer(15, e -> {   
+        timer = new Timer(15, e -> {
         	if(gameOver) {
         		resetPlayGround();
+        		soundManager.startGameOverSound();
         		statusBarManager.gameOverTable(this, score);
         	}
         	else if (reset) {
                 timer.stop();
-                //statusBarManager.gameOverTable(this, score);
-                background.deleteBackground();
-                entityManager.deleteAllEnemies(this);
-                entityManager.deletePlayer(this);
-                bulletManager.deleteAllBullets(this);
+                resetPlayGround();
                 return;
             }else{
+            	statusBarManager.deleteGameOverTable(this);
             	while(resume) {
+            		System.out.println("game resumed");
             		try {
 						Thread.sleep(100);
 					} catch (InterruptedException e1) {
@@ -93,7 +99,6 @@ public class Game extends JPanel implements KeyListener{
                 bulletManager.bulletLoop(this);
                 entityManager.movePlayer(this);
                 entityManager.enemyLoop(this);
-                bulletManager.enemyBulletLoop(this);
             }
         });
         timer.start();
@@ -116,7 +121,7 @@ public class Game extends JPanel implements KeyListener{
     
     public void resumeGame(boolean boolVal) {
     	System.out.println("resume value " + boolVal);
-    	resume = boolVal;
+    	this.resume = boolVal;
     	if(boolVal) timer.stop();
     	else timer.start();
     }
@@ -125,7 +130,6 @@ public class Game extends JPanel implements KeyListener{
     private void setTheFrame() {
         layeredPane.setBounds(0,0,500,500);
         this.add(layeredPane);
-        //this.add(layeredPane, BorderLayout.CENTER);
         this.setBackground(Color.BLACK);
         this.setSize(500, 500);
         this.setLayout(null);
@@ -144,7 +148,7 @@ public class Game extends JPanel implements KeyListener{
 
     @Override
     public void keyPressed(KeyEvent e) {
-    	if(reset) return;
+    	if(reset || gameOver) return;
         int keyCode = e.getKeyCode();
         pressedKeys.add(keyCode);
 
@@ -174,5 +178,3 @@ public class Game extends JPanel implements KeyListener{
     	else return pressedKeys.contains(keyCode);
     }
 }
-
-

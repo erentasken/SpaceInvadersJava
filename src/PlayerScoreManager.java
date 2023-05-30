@@ -9,6 +9,9 @@ public class PlayerScoreManager {
 	int count=1;
 	public PlayerScoreManager() throws IOException {
 		file = new File(fileName);
+		if (!file.exists()) {
+            file.createNewFile();
+        }
 	}
 	public void writeToFile(String playerName, int playerScore) throws IOException {
 		try {
