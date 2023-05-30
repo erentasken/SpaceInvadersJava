@@ -5,12 +5,20 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
+import java.util.TimerTask;
+import java.util.Timer;
 
 public class BulletManager {
     private final List<JLabel> bulletList;
+    private final List<JLabel> enemyBulletList;
+    private Timer enemyBulletTimer;
+    Random random;
     public BulletManager(){
         bulletList = new ArrayList<JLabel>();
+        enemyBulletList = new ArrayList<JLabel>();
     }
+    
     public void bulletLoop(Game game){
         if(!bulletList.isEmpty()){
             Iterator<JLabel> iterator = bulletList.iterator();
@@ -28,6 +36,68 @@ public class BulletManager {
             }
         }
     }
+    
+    public void enemyBulletLoop(Game game) {
+    	if(enemyBulletTimer==null) startEnemyBulletTimer(game);
+        if(!enemyBulletList.isEmpty()){
+            Iterator<JLabel> iterator = enemyBulletList.iterator();
+            while(iterator.hasNext()){
+                JLabel bullet = iterator.next();
+                int bulletX = bullet.getX();
+                int bulletY = bullet.getY();
+                bullet.setLocation(bulletX, bulletY+7);
+                bullet.setVisible(true);
+//                checkBulletCollision(game, bullet); write its player version
+                if(!bullet.isVisible() || bullet.getY() < -bullet.getHeight()){
+                    iterator.remove();
+                    game.layeredPane.remove(bullet);
+                }
+            }
+        }
+    }
+    
+    
+    
+    public void startEnemyBulletTimer(Game game) {
+        enemyBulletTimer = new Timer();
+        enemyBulletTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if (game.entityManager.enemyList.isEmpty()) {
+                    return; // No enemies to fire bullets
+                }
+
+                Random random = new Random();
+                int enemyIndex = random.nextInt(game.entityManager.enemyList.size());
+                Enemy enemy = game.entityManager.enemyList.get(enemyIndex);
+                if (enemy == null || !enemy.getLabel().isVisible()) {
+                    return; // Selected enemy is null or not visible
+                }
+
+                int enemyX = enemy.getLabel().getX();
+                int enemyY = enemy.getLabel().getY() + enemy.getLabel().getHeight() + 10;
+                createEnemyBulletLabel(game, enemyX + 15, enemyY);
+            }
+        }, 4000, 4000);
+    }
+    
+    private void createEnemyBulletLabel(Game game, int x, int y){
+        String bulletImgName = "/icons/bulletIcons/ammo2.png";
+        URL iconPath = getClass().getResource(bulletImgName);
+        if (iconPath == null) {
+            System.out.println("Failed to load the ammo image.");
+            return;
+        }
+        Icon icon = new ImageIcon(iconPath);
+        JLabel localLabel = new JLabel(icon);
+        localLabel.setOpaque(false);
+        localLabel.setBounds(x, y, 30, 30);
+        localLabel.setVisible(true);
+        game.layeredPane.add(localLabel);
+        enemyBulletList.add(localLabel);
+    }
+
+
 
     public void throwBullet(Game game, Player player, boolean fireAllowed){
         if(!fireAllowed) return;
@@ -64,7 +134,7 @@ public class BulletManager {
         if(bullet == null){
             return;
         }
-        Iterator<Enemy> enemyIterator = game.enemyList.iterator();
+        Iterator<Enemy> enemyIterator = game.entityManager.enemyList.iterator();
         while (enemyIterator.hasNext()) {
             Enemy enemy = enemyIterator.next();
             JLabel enemyLabel = enemy.getLabel();
@@ -111,6 +181,15 @@ public class BulletManager {
             }
         });
         bulletAnimation.start();
+    }
+    
+    public void deleteAllBullets(Game game) {
+    	Iterator<JLabel> iterator = bulletList.iterator();
+        while(iterator.hasNext()){
+        	JLabel bullet = iterator.next();
+        	game.layeredPane.remove(bullet);
+            iterator.remove();
+        }
     }
 }
 

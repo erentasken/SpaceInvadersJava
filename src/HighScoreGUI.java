@@ -51,12 +51,15 @@
 //        });
 //    }
 //}
-
+import Main.Game;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 public class HighScoreGUI extends JFrame {
-    public HighScoreGUI(String highScores) {
+    public HighScoreGUI(String highScores, Game currentGame) {
+    	setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setTitle("HIGH SCORES");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         getContentPane().setBackground(Color.BLACK);
@@ -90,12 +93,13 @@ public class HighScoreGUI extends JFrame {
         pack();
         setLocationRelativeTo(null);
         setVisible(true);
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            String highScores = "null 4\nnull 1\nnull 0\nnull 3\nnull 1\nnull 1";
-            HighScoreGUI highScoreGUI = new HighScoreGUI(highScores);
+        
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                // Perform any necessary cleanup or actions here
+                currentGame.resumeGame(false);
+            }
         });
     }
 }

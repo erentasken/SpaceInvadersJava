@@ -11,7 +11,7 @@ import java.util.Random;
 
 public class EntityManager {
 	public Player player;
-	private int playerSpeed = 7;
+	private int playerSpeed = 5;
 	private int playerHP = 3; // Player's hit points
 
 	private int enemyHP = 5; // Enemy's hit points
@@ -26,9 +26,10 @@ public class EntityManager {
 	boolean untouchable = false;
 	int horizontalMoveEnemy = 1;
 	
+	public List<Enemy> enemyList;
 
 	public EntityManager() {
-
+		enemyList = new ArrayList<Enemy>();
 	}
 
 	public void createPlayerLabel(Game game) {
@@ -57,16 +58,16 @@ public class EntityManager {
 		int dx = 0;
 		int dy = 0;
 
-		if (game.isKeyPressed(KeyEvent.VK_W)) {
+		if (game.isKeyPressed(KeyEvent.VK_W) && player.getLabel().getY()>0 ) {
 			dy -= playerSpeed;
 		}
-		if (game.isKeyPressed(KeyEvent.VK_A)) {
+		if (game.isKeyPressed(KeyEvent.VK_A) && player.getLabel().getX()>0) {
 			dx -= playerSpeed;
 		}
-		if (game.isKeyPressed(KeyEvent.VK_S)) {
+		if (game.isKeyPressed(KeyEvent.VK_S) && y < game.getHeight() - player.getLabel().getHeight()) {
 			dy += playerSpeed;
 		}
-		if (game.isKeyPressed(KeyEvent.VK_D)) {
+		if (game.isKeyPressed(KeyEvent.VK_D) &&  x < game.getWidth() - player.getLabel().getWidth()) {
 			dx += playerSpeed;
 		}
 		// Adjust for diagonal movement
@@ -96,7 +97,7 @@ public class EntityManager {
 	}
 
 	private void checkPlayerCollision(Game game) {
-		Iterator<Enemy> enemyIterator = game.enemyList.iterator();
+		Iterator<Enemy> enemyIterator = game.entityManager.enemyList.iterator();
 		while (enemyIterator.hasNext()) {
 			Enemy enemy = enemyIterator.next();
 			JLabel enemyLabel = enemy.getLabel();
@@ -135,12 +136,23 @@ public class EntityManager {
 
 	private void initialiseEnemies(Game game, int count) { // original method
 		creatingEnemies = true;
-		var createEnemies = new Thread(() -> {
-			if(game.stop) return;
+		Thread createEnemies = new Thread(() -> {
+			if(game.resume) {
+				try {
+					Thread.sleep(100);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			if(game.reset || game.gameOver) return;
 			Random random = new Random();
 			for (int i = 0; i < count; i++) {
-				if (game.stop)
+				if (game.reset || game.gameOver) {
+					System.out.println("hello");
 					break;
+				}
+					
 				try {
 					Thread.sleep(2000);
 				} catch (InterruptedException e) {
@@ -150,6 +162,7 @@ public class EntityManager {
 				int y = -50; // Starting position above the screen
 				createEnemyLabel(game, x, y);
 			}
+			game.bulletManager.startEnemyBulletTimer(game);
 			creatingEnemies = false;
 		});
 		createEnemies.start();
@@ -166,8 +179,8 @@ public class EntityManager {
 		localLabel = new JLabel(icon);
 		localLabel.setBounds(x, y, 60, 60);
 		game.enemyLabel = localLabel;
-		Enemy enemy = new Enemy(game.enemyLabel, enemyHP, enemySpeed);
-		game.enemyList.add(enemy);
+		Enemy enemy = new Enemy(game.enemyLabel, enemyHP, enemySpeed); //game'de enemyLabel olmasi sacma
+		enemyList.add(enemy);
 		game.layeredPane.add(game.enemyLabel);
 		
 		enemyAnimation(game, localLabel);
@@ -175,7 +188,8 @@ public class EntityManager {
 	
 	private void enemyAnimation(Game game, JLabel enemy) {
 		Thread animationThread = new Thread(()->{
-			if(game.stop) return;
+			if(game.reset || game.gameOver)return;
+			
 			int counterEnemyAnimation = 0;
 			while (enemy.isVisible()){
 		    	String enemyImageName = null;
@@ -211,26 +225,32 @@ public class EntityManager {
 		animationThread.start();
 		}
 	
+	public void deletePlayer(Game game) {
+		game.remove(player.getLabel());
+	}
+	
 	public void deleteAllEnemies(Game game) {
-		Iterator<Enemy> iterator = game.enemyList.iterator();
-		List<JLabel> labelsToRemove = new ArrayList<>();
-		
+		Iterator<Enemy> iterator = enemyList.iterator();
 		// = "/icons/playerIcons/player.png";
 		while (iterator.hasNext()) {
 			Enemy enemy = iterator.next();
 			JLabel enemyLabel = enemy.getLabel();
 			game.remove(enemyLabel);
 			game.layeredPane.remove(enemyLabel);
+			game.repaint();
+			game.layeredPane.repaint();
 			iterator.remove();
 		}
+
 	}
 
 	private void moveEnemies(Game game) {
-		Iterator<Enemy> iterator = game.enemyList.iterator();
+		Iterator<Enemy> iterator = enemyList.iterator();
 		List<JLabel> labelsToRemove = new ArrayList<>();
 		
 		// = "/icons/playerIcons/player.png";
 		while (iterator.hasNext()) {
+			if(game.resume) continue;
 			Enemy enemy = iterator.next();
 			JLabel enemyLabel = enemy.getLabel();
 			
@@ -243,7 +263,6 @@ public class EntityManager {
 			if (x <= 0)
 				horizontalMoveEnemy = 1;
 			x += horizontalMoveEnemy;
-
 			enemyLabel.setLocation(x, y + dy);
 
 			if (y > game.getHeight() || !enemyLabel.isVisible()) {
@@ -266,14 +285,13 @@ public class EntityManager {
 	
 
 	public void spawnEnemy(Game game, int count) {
-		if (game.enemyList.isEmpty() && !creatingEnemies)
-			initialiseEnemies(game, count);
+		if (game.entityManager.enemyList.isEmpty() && !creatingEnemies) initialiseEnemies(game, count);
 		spawnerUpdater(game);
 	}
 
 	private void spawnerUpdater(Game game) {
-		if (game.currentTime == game.levelUpTimes) {
-			spawnRate += game.currentTime / 1.5;
+		if (game.stopWatch == game.levelUpTimes) {
+			spawnRate += game.stopWatch / 1.5;
 			game.levelUpTimes *= 3.0 / 2;
 		}
 	}

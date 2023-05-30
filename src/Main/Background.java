@@ -59,9 +59,16 @@ public class Background {
 
     private void startScrolling() {
         Thread thread = new Thread(() -> {
-            Random random = new Random(); // Create a random number generator
             while (true) {
-                if (game.stop) break;
+            	while(game.resume) {
+            		try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+            	}
+                if (game.reset) break;
                 for (int row = 0; row < tileLabels.length; row++) {
                     for (int col = 0; col < tileLabels[row].length; col++) {
                         JLabel tileLabel = tileLabels[row][col];

@@ -3,6 +3,8 @@ import java.util.HashMap;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.Map.Entry;
 
@@ -10,19 +12,17 @@ import Main.*;
 
 public class MyGUI extends JFrame {
 	static HashMap<String, String> playerInfo = new HashMap<String, String>();
-	PlayerScoreManager scoreBoard;
-	PlayerScoreManager scoreManager;
-	Game currentGame;
-	String inputString;
-	HighScoreGUI highScoreGUI;
+	private PlayerScoreManager scoreBoard;
+	private Game currentGame;
+	private String inputString;
+	private HighScoreGUI highScoreGUI;
 	int junk=0;
 	int playerNumber = 0;
-    public MyGUI() throws IOException {
+    public MyGUI(){
         initializeMenuBar();
-        setPreferredSize(new Dimension(500, 500));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setPreferredSize(new Dimension(500, 500));
         setLayout(new BorderLayout());//
-        pack();
         setLocationRelativeTo(null);
         setVisible(true);
         
@@ -33,7 +33,15 @@ public class MyGUI extends JFrame {
 			e.printStackTrace();
 		}
         
-        scoreManager = new PlayerScoreManager();
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                // Perform any necessary cleanup or actions here
+                scoreBoard.deleteTheFile();
+                System.exit(0);
+            }
+        });
+        pack();
     }
 
     private void initializeMenuBar() {
@@ -42,27 +50,30 @@ public class MyGUI extends JFrame {
         JMenuItem playGame = new JMenuItem("Play Game");
         JMenuItem highScore = new JMenuItem("High Score");
         JMenuItem quit = new JMenuItem("Quit");
+        
         fileMenu.add(register);
         fileMenu.add(playGame);
         fileMenu.add(highScore);
         fileMenu.add(quit);
+        
         JMenu helpMenu = new JMenu("Help");
         JMenuItem about = new JMenuItem("About");
         helpMenu.add(about);
+        
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(fileMenu);
         menuBar.add(helpMenu);
-        setJMenuBar(menuBar);
-        
+        this.setJMenuBar(menuBar);
+
         
         highScore.addActionListener(new ActionListener() {
-
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				if(currentGame!=null) currentGame.resumeGame(true);
 				// TODO Auto-generated method stub
 				inputString = scoreBoard.readTheFile();
 				System.out.println(inputString);
-	            highScoreGUI = new HighScoreGUI(inputString);
+				if(inputString !=null) highScoreGUI = new HighScoreGUI(inputString, currentGame);
 			}
         	
         });
@@ -94,7 +105,8 @@ public class MyGUI extends JFrame {
                     @Override
                     public void run() {
                     	if(currentGame!=null) {
-                    		currentGame.stop=true;
+                    		currentGame.gameOver=false;
+                    		currentGame.reset=true;
                     	}
                         Game game = new Game();
                         game.startGame();
@@ -102,7 +114,7 @@ public class MyGUI extends JFrame {
                         game.requestFocusInWindow();
                         currentGame = game;
                         Thread stopIndicatorThread = new Thread(()->{
-                    		while(!currentGame.stop) {
+                    		while(!currentGame.reset) {
                     			System.out.print("");
                     			continue;
                     		}
@@ -137,17 +149,9 @@ public class MyGUI extends JFrame {
         quit.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+            	scoreBoard.deleteTheFile();
                 System.exit(0);
             }
-        });
-        
-        highScore.addActionListener(new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				
-			}
-        	
         });
     }
     
@@ -155,12 +159,7 @@ public class MyGUI extends JFrame {
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                try {
-					new MyGUI();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+                new MyGUI();
             }
         });
 

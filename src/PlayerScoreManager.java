@@ -24,6 +24,7 @@ public class PlayerScoreManager {
 	public String readTheFile() {
 		String fileOutput=null;
         try {
+        	if(file==null)return null;
             Scanner scanner = new Scanner(file);
             while (scanner.hasNextLine()) {
                 String fileData = scanner.nextLine();
@@ -36,8 +37,13 @@ public class PlayerScoreManager {
             scanner.close();
         } catch (FileNotFoundException e) {
             System.out.println("File not found.");
-            e.printStackTrace();
         }
         return fileOutput;
+	}
+	
+	public void deleteTheFile() {
+		if(file.delete()) {
+			System.out.println("file deleted");
+		}
 	}
 }
