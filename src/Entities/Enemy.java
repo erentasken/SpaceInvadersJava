@@ -1,4 +1,6 @@
-package Main;
+//package Main;
+package Entities;
+import Main.Game;
 import javax.swing.*;
 
 public class Enemy { //enemy
@@ -15,7 +17,7 @@ public class Enemy { //enemy
     public void handleEnemyDestroyed(Game game) {
         label.setVisible(false); // it will be removed in moveEnemies. It is indicator for removing.
         game.score++;
-        game.statusBarManager.updateScore(game.score);
+        game.getStatusBarManager().updateScore(game.score);
     }
 
     public JLabel getLabel() {

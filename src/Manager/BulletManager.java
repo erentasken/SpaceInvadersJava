@@ -1,8 +1,11 @@
-package Main;
+package Manager;
+import Main.Game;
+import Entities.*;
 import javax.swing.*;
 import java.awt.*;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -44,21 +47,34 @@ public class BulletManager {
     }
     
     public void enemyBulletLoop(Game game) {
-    	if(enemyBulletTimer==null) startEnemyBulletTimer(game);
-        if(!enemyBulletList.isEmpty()){
-            Iterator<JLabel> iterator = enemyBulletList.iterator();
-            while(iterator.hasNext()){
-                JLabel bullet = iterator.next();
-                if(!bullet.isVisible()) break;
-                int bulletX = bullet.getX();
-                int bulletY = bullet.getY();
-                bullet.setLocation(bulletX, bulletY+5);
-                bullet.setVisible(true);
-                checkEnemyBulletCollision(game, bullet); 
-                if(!bullet.isVisible() || bullet.getY() > game.getHeight()+bullet.getHeight()){
-                    iterator.remove();
-                    game.layeredPane.remove(bullet);
+        if (enemyBulletTimer == null) {
+            startEnemyBulletTimer(game);
+        }
+        if (!enemyBulletList.isEmpty()) {
+            List<JLabel> bulletsToRemove = new ArrayList<>();  // New list to store bullets to be removed
+            try {
+                for (JLabel bullet : enemyBulletList) {
+                    if (!bullet.isVisible()) {
+                        bulletsToRemove.add(bullet);  // Add bullets to be removed
+                        continue;
+                    }
+                    int bulletX = bullet.getX();
+                    int bulletY = bullet.getY();
+                    bullet.setLocation(bulletX, bulletY + 5);
+                    bullet.setVisible(true);
+                    checkEnemyBulletCollision(game, bullet);
+                    if (!bullet.isVisible() || bullet.getY() > game.getHeight() + bullet.getHeight()) {
+                        bulletsToRemove.add(bullet);  // Add bullets to be removed
+                    }
                 }
+            }catch(ConcurrentModificationException e) {
+            	System.out.println("exception thrown");
+            }
+
+            // Remove bullets from the enemyBulletList
+            for (JLabel bullet : bulletsToRemove) {
+                enemyBulletList.remove(bullet);
+                game.layeredPane.remove(bullet);
             }
         }
     }
@@ -75,11 +91,11 @@ public class BulletManager {
             }
 
             Rectangle enemyBulletBounds = enemyBulletLabel.getBounds();
-            Rectangle playerBounds = game.entityManager.player.getLabel().getBounds();
+            Rectangle playerBounds = game.getEntityManager().player.getLabel().getBounds();
             if (enemyBulletLabel.isVisible() && enemyBulletBounds.intersects(playerBounds)) {
-                game.entityManager.player.decreaseHP();
-                game.statusBarManager.updateLife(game.entityManager.player.getHP());
-                if (game.entityManager.player.getHP() <= 0) {
+                game.getEntityManager().player.decreaseHP();
+                game.getStatusBarManager().updateLife(game.getEntityManager().player.getHP());
+                if (game.getEntityManager().player.getHP() <= 0) {
                     game.handleGameOver();
                 }
                 enemyBulletLabel.setVisible(false);
@@ -95,19 +111,19 @@ public class BulletManager {
         enemyBulletTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-            	if (game.resume) {
-            		System.out.println("hello");
+            	if (game.isResume() || game.gameOver || game.reset) {
                     enemyBulletTimer.cancel();
                     enemyBulletTimer.purge();
                     return; // Stop the timer if game.resume is true
                 }
-                if (game.entityManager.enemyList.isEmpty()) {
+                if (game.getEntityManager().enemyList.isEmpty()) {
                     return; // No enemies to fire bullets
                 }
+                
 
                 Random random = new Random();
-                int enemyIndex = random.nextInt(game.entityManager.enemyList.size());
-                Enemy enemy = game.entityManager.enemyList.get(enemyIndex);
+                int enemyIndex = random.nextInt(game.getEntityManager().enemyList.size());
+                Enemy enemy = game.getEntityManager().enemyList.get(enemyIndex);
                 if (enemy == null || !enemy.getLabel().isVisible()) {
                     return; // Selected enemy is null or not visible
                 }
@@ -115,13 +131,13 @@ public class BulletManager {
                 int enemyX = enemy.getLabel().getX();
                 int enemyY = enemy.getLabel().getY() + enemy.getLabel().getHeight() + 10;
                 createEnemyBulletLabel(game, enemyX + 15, enemyY);
-                game.soundManager.enemyGunShotSound();
+                game.getSoundManager().enemyGunShotSound();
             }
-        }, 2000, 2000);
+        }, 4000, 4000);
     }
     
     private void createEnemyBulletLabel(Game game, int x, int y){
-        String bulletImgName = "/icons/bulletIcons/ammo2.png";
+        String bulletImgName = "/resources/icons/bulletIcons/ammo2.png";
         URL iconPath = getClass().getResource(bulletImgName);
         if (iconPath == null) {
             System.out.println("Failed to load the ammo image.");
@@ -143,17 +159,17 @@ public class BulletManager {
         if(player==null) return;
         int spaceshipX = player.getLabel().getX();
         int spaceshipY = player.getLabel().getY();
-        String bulletImgName = "/icons/bulletIcons/ammo1.png";
+        String bulletImgName = "/resources/icons/bulletIcons/ammo1.png";
         URL iconPath = getClass().getResource(bulletImgName);
         if (iconPath == null) {
             System.out.println("Failed to load the ammo image.");
             return;
         }
-        createBulletLabel(game, spaceshipX+15, spaceshipY-20);
+        createBulletLabel(game, spaceshipX+11, spaceshipY-20);
     }
 
     private void createBulletLabel(Game game, int x, int y){
-        String bulletImgName = "/icons/bulletIcons/ammo2.png";
+        String bulletImgName = "/resources/icons/bulletIcons/ammo2.png";
         URL iconPath = getClass().getResource(bulletImgName);
         if (iconPath == null) {
             System.out.println("Failed to load the ammo image.");
@@ -166,38 +182,54 @@ public class BulletManager {
         localLabel.setVisible(true);
         game.layeredPane.add(localLabel);
         bulletList.add(localLabel);
-        game.soundManager.gunShotSound();
+        game.getSoundManager().gunShotSound();
     }
 
     public void checkBulletCollision(Game game, JLabel bullet){
         if(bullet == null){
             return;
         }
-        Iterator<Enemy> enemyIterator = game.entityManager.enemyList.iterator();
-        while (enemyIterator.hasNext()) {
-            Enemy enemy = enemyIterator.next();
-            JLabel enemyLabel = enemy.getLabel();
-            if (!enemyLabel.isVisible()) {
-                continue; // Skip collision detection if enemy label is not visible
-            }
-
-            Rectangle enemyBounds = enemyLabel.getBounds();
-            Rectangle bulletBounds = bullet.getBounds();
-            if (bullet.isVisible() && bulletBounds.intersects(enemyBounds)) {
-                enemy.decreaseHP();
-                if (enemy.getHP() <= 0) {
-                    enemy.handleEnemyDestroyed(game);
-                    enemyIterator.remove(); // Remove the enemy from the list
+        Iterator<Enemy> enemyIterator = game.getEntityManager().enemyList.iterator();
+        try {
+            while (enemyIterator.hasNext()) {
+                Enemy enemy = enemyIterator.next();
+                JLabel enemyLabel = enemy.getLabel();
+                if (!enemyLabel.isVisible()) {
+                    continue; // Skip collision detection if enemy label is not visible
                 }
-                bullet.setVisible(false);
+
+                Rectangle enemyBounds = enemyLabel.getBounds();
+                Rectangle bulletBounds = bullet.getBounds();
+                if (bullet.isVisible() && bulletBounds.intersects(enemyBounds)) {
+                	String enemyImageName = null;
+                	for(int i = 4; i<8; i++) {
+                		enemyImageName = "/resources/icons/enemyIcons/enemy"+i+".png";
+                	}
+    		      	URL iconPath = getClass().getResource(enemyImageName);
+    		      	if (iconPath != null) {
+    		      		ImageIcon icon = new ImageIcon(iconPath);
+    		            enemy.getLabel().setIcon(icon);
+    		        }else System.out.println("can't uploaded the enemy png");
+    		      	
+                    enemy.decreaseHP();
+                    game.getSoundManager().hitSound();
+                    if (enemy.getHP() <= 0) {
+                        enemy.handleEnemyDestroyed(game);
+                        enemyIterator.remove(); // Remove the enemy from the list
+                    }
+                    bullet.setVisible(false);
+                }
             }
+        }catch(ConcurrentModificationException e) {
+        	System.out.println("Exception handled");
         }
+
 
     }
 
     private void bulletAnimation(JLabel bullet){
-        URL otherIconPath = getClass().getResource("/icons/bulletIcons/ammo1.png");
-        URL otherIcon1Path = getClass().getResource("/icons/bulletIcons/ammo2.png");
+        URL otherIconPath = getClass().getResource("/resources/icons/bulletIcons/ammo1.png");
+        URL otherIcon1Path = getClass().getResource("/resources/icons/bulletIcons/ammo2.png");
         Thread bulletAnimation = new Thread(()->{
             boolean flag = true;
             while(bullet.isVisible()) {
@@ -224,14 +256,12 @@ public class BulletManager {
         while(iterator.hasNext()){
         	JLabel bullet = iterator.next();
         	game.layeredPane.remove(bullet);
-        	System.out.println("deleteplayerbullet");
             iterator.remove();
         }
         iterator = enemyBulletList.iterator();
         while(iterator.hasNext()){
         	JLabel bullet = iterator.next();
         	game.layeredPane.remove(bullet);
-        	System.out.println("deleteenemybullet");
             iterator.remove();
         }
     }

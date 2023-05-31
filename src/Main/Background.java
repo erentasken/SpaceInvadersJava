@@ -12,18 +12,11 @@ public class Background {
 
     public Background(Game game) {
         this.game = game;
-        tileSize = 25;
+        tileSize = 50; // size of the pictures in this case we are using 50x50
 
         // Load tile images from resources
         tileIcons = new ImageIcon[5];
-        for (int i = 0; i < tileIcons.length; i++) {
-            URL iconPath = getClass().getResource("../icons/background/oto" + i +".png");
-            if (iconPath == null) {
-                System.out.println("Failed to load tile " + i + " image.");
-                return;
-            }
-            tileIcons[i] = new ImageIcon(iconPath);
-        }
+        loadIcons("/resources/icons/background/oto");
 
         // Calculate the number of tiles required to fill the game window
         int numHorizontalTiles = game.getWidth() / tileSize;
@@ -44,23 +37,26 @@ public class Background {
                 tileLabels[row][col] = tileLabel;
             }
         }
-
-        // Create the background label
-        JLabel backgroundLabel = new JLabel();
-        backgroundLabel.setBounds(0, 0, game.getWidth(), game.getHeight());
-        //game.layeredPane.add(backgroundLabel, Integer.valueOf(0));
-        // Set the rendering order
-        game.setComponentZOrder(backgroundLabel, 0);
-
         startScrolling();
     }
+    
 
+    public void loadIcons(String iconSetPath) {
+    	for (int i = 0; i < tileIcons.length; i++) {
+            URL iconPath = getClass().getResource(iconSetPath + i +".png");
+            if (iconPath == null) {
+                System.out.println("Failed to load tile " + i + " image.");
+                return;
+            }
+            tileIcons[i] = new ImageIcon(iconPath);
+        }
+    }
+    
 
-
-    private void startScrolling() {
+    private void startScrolling() { // that renders the jlabels line by line 
         Thread thread = new Thread(() -> {
             while (true) {
-            	while(game.resume) {
+            	while(game.isResume()) {
             		try {
 						Thread.sleep(100);
 					} catch (InterruptedException e) {
@@ -68,15 +64,15 @@ public class Background {
 						e.printStackTrace();
 					}
             	}
-                if (game.reset) break;
+                if (game.reset || game.gameOver) break;
                 for (int row = 0; row < tileLabels.length; row++) {
                     for (int col = 0; col < tileLabels[row].length; col++) {
                         JLabel tileLabel = tileLabels[row][col];
                         shuffleTileIcons();
                         tileLabel.setLocation(tileLabel.getX(), tileLabel.getY() - 1);
-                        if (tileLabel.getY() < -tileSize) {
+                        if (tileLabel.getY() < -tileSize) { // 
                             shuffleTileIcons();
-                            int newRow = (numVerticalTiles - 1 + row) % numVerticalTiles;
+                            int newRow = (numVerticalTiles - 1 + row) % numVerticalTiles; // we are updating the new row for rendering . 
                             tileLabel.setLocation(tileLabel.getX(), tileLabel.getY() + numVerticalTiles * tileSize);
                             updateTile(tileLabel, newRow, col);
                         }
@@ -95,6 +91,33 @@ public class Background {
             }
         });
         thread.start();
+    }
+    
+    public void updateBackgroundIcons(String newIconSetPath) {
+        ImageIcon[] newIcons = new ImageIcon[5];
+        loadIcons(newIconSetPath);
+
+        // Check if the number of new icons matches the existing number of icons
+        if (newIcons.length != tileIcons.length) {
+            System.out.println("Failed to update background icons. The number of new icons is different.");
+            return;
+        }
+
+        // Update the tile icons with the new icons
+        tileIcons = newIcons;
+
+        // Update the tile labels with the new icons
+        for (int row = 0; row < numVerticalTiles; row++) {
+            for (int col = 0; col < tileLabels[row].length; col++) {
+                JLabel tileLabel = tileLabels[row][col];
+                int tileIndex = (row + col) % tileIcons.length;
+                ImageIcon tileIcon = tileIcons[tileIndex];
+                tileLabel.setIcon(tileIcon);
+            }
+        }
+
+        // Repaint the game panel to reflect the changes
+        game.repaint();
     }
 
     private void shuffleTileIcons() {

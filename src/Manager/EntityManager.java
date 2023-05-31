@@ -1,5 +1,7 @@
-package Main;
-
+//package Main;
+package Manager;
+import Main.*;
+import Entities.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -27,6 +29,7 @@ public class EntityManager {
 	private URL iconPath;
 	private JLabel localLabel;
 	
+	
 
 	public EntityManager() {
 		enemyList = new ArrayList<Enemy>();
@@ -34,7 +37,7 @@ public class EntityManager {
 
 	public void createPlayerLabel(Game game) {
 		try {
-			String playerImgName = "/icons/playerIcons/player.png";
+			String playerImgName = "/resources/icons/playerIcons/player.png";
 			iconPath = game.getClass().getResource(playerImgName);
 			icon = new ImageIcon(iconPath);
 			localLabel = new JLabel();
@@ -75,6 +78,24 @@ public class EntityManager {
 			dx = (int) (diagonalSpeed * Math.signum(dx));
 			dy = (int) (diagonalSpeed * Math.signum(dy));
 		}
+		
+
+	    Point mousePosition = game.getMousePosition();
+	    if (mousePosition != null) {
+	        int mouseX = mousePosition.x;
+	        int mouseY = mousePosition.y;
+	        
+	        // Calculate the direction towards the mouse position
+	        dx = mouseX - (x + player.getLabel().getWidth() / 2);
+	        dy = mouseY - (y + player.getLabel().getHeight() / 2);
+	        
+	        // Normalize the direction vector
+	        double magnitude = Math.sqrt(dx * dx + dy * dy);
+	        dx = (int) (dx / magnitude * playerSpeed);
+	        dy = (int) (dy / magnitude * playerSpeed);
+	    }
+		
+
 
 		playerAnimation();
 
@@ -83,19 +104,34 @@ public class EntityManager {
 	}
 
 	private void playerAnimation() {
-		String playerImgName;
-		if (counter % 2 == 0)
-			playerImgName = "/icons/playerIcons/player.png";
-		else
-			playerImgName = "/icons/playerIcons/player1.png";
-		counter++;
-		iconPath = this.getClass().getResource(playerImgName);
-		icon = new ImageIcon(iconPath);
-		player.getLabel().setIcon(icon);
+		if(untouchable) {
+			String playerImgName;
+			player.getLabel().setVisible(true);
+			if (counter % 2 == 0)
+				playerImgName = "/resources/icons/playerIcons/player2.png";
+			else
+				playerImgName = "/resources/icons/playerIcons/player1.png";
+			counter++;
+			iconPath = this.getClass().getResource(playerImgName);
+			icon = new ImageIcon(iconPath);
+			player.getLabel().setIcon(icon);
+		}else {
+			String playerImgName;
+			player.getLabel().setVisible(true);
+			if (counter % 2 == 0)
+				playerImgName = "/resources/icons/playerIcons/player.png";
+			else
+				playerImgName = "/resources/icons/playerIcons/player1.png";
+			counter++;
+			iconPath = this.getClass().getResource(playerImgName);
+			icon = new ImageIcon(iconPath);
+			player.getLabel().setIcon(icon);
+		}
+
 	}
 
 	private void checkPlayerCollision(Game game) {
-		Iterator<Enemy> enemyIterator = game.entityManager.enemyList.iterator();
+		Iterator<Enemy> enemyIterator = game.getEntityManager().enemyList.iterator();
 		while (enemyIterator.hasNext()) {
 			Enemy enemy = enemyIterator.next();
 			JLabel enemyLabel = enemy.getLabel();
@@ -105,11 +141,12 @@ public class EntityManager {
 			Rectangle enemyBounds = enemyLabel.getBounds();
 			if (playerBounds.intersects(enemyBounds) && !untouchable) {
 				player.decreaseHP();
-				game.statusBarManager.updateLife(player.getHP());
+				game.getSoundManager().damageTaken();
+				game.getStatusBarManager().updateLife(player.getHP());
 				Thread untouchablePlayer = new Thread(() -> {
 					untouchable = true;
 					try {
-						Thread.sleep(2000);
+						Thread.sleep(4000);
 					} catch (InterruptedException e) {
 						throw new RuntimeException(e);
 					}
@@ -132,7 +169,7 @@ public class EntityManager {
 	private void initialiseEnemies(Game game, int count) { // original method
 		creatingEnemies = true;
 		Thread createEnemies = new Thread(() -> {
-			if(game.resume) {
+			if(game.isResume()) {
 				try {
 					Thread.sleep(100);
 				} catch (InterruptedException e) {
@@ -140,12 +177,12 @@ public class EntityManager {
 					e.printStackTrace();
 				}
 			}
-			if(game.reset || game.gameOver || game.resume) 
+			if(game.reset || game.gameOver || game.isResume()) 
 				return;
 			
 			Random random = new Random();
 			for (int i = 0; i < count; i++) {
-				if (game.reset || game.gameOver || game.resume) break;
+				if (game.reset || game.gameOver || game.isResume()) break;
 				
 				try {
 					Thread.sleep(2000);
@@ -157,14 +194,14 @@ public class EntityManager {
 				int y = -50; // Starting position above the screen
 				createEnemyLabel(game, x, y);
 			}
-			game.bulletManager.startEnemyBulletTimer(game);
+			game.getBulletManager().startEnemyBulletTimer(game);
 			creatingEnemies = false;
 		});
 		createEnemies.start();
 	}
 
 	private void createEnemyLabel(Game game, int x, int y) {
-		String enemyOneImgName = "/icons/enemyIcons/enemy1.png";
+		String enemyOneImgName = "/resources/icons/enemyIcons/enemy1.png";
 		iconPath = getClass().getResource(enemyOneImgName);
 		if (iconPath == null) {
 			System.out.println("Failed to load the enemy image.");
@@ -183,28 +220,28 @@ public class EntityManager {
 	
 	private void enemyAnimation(Game game, JLabel enemy) {
 		Thread animationThread = new Thread(()->{
-			if(game.reset || game.gameOver || game.resume)return;
+			if(game.reset || game.gameOver || game.isResume())return;
 			
 			int counterEnemyAnimation = 0;
 			while (enemy.isVisible()){
-				if(game.reset || game.gameOver || game.resume)return;
+				if(game.reset || game.gameOver || game.isResume())return;
 		    	String enemyImageName = null;
-		    	URL iconPath;
+		    	
 		      	switch (counterEnemyAnimation % 4) {
 					case 0:
-						enemyImageName = "/icons/enemyIcons/enemy0.png";
+						enemyImageName = "/resources/icons/enemyIcons/enemy0.png";
 						break;
 					case 1:
-						enemyImageName = "/icons/enemyIcons/enemy1.png";
+						enemyImageName = "/resources/icons/enemyIcons/enemy1.png";
 						break;
 					case 2:
-						enemyImageName = "/icons/enemyIcons/enemy2.png";
+						enemyImageName = "/resources/icons/enemyIcons/enemy2.png";
 						break;
 					case 3:
-						enemyImageName = "/icons/enemyIcons/enemy3.png";
+						enemyImageName = "/resources/icons/enemyIcons/enemy3.png";
 						break;
 					}
-		      	iconPath = getClass().getResource(enemyImageName);
+		      	URL iconPath= getClass().getResource(enemyImageName);
 		      	if (iconPath != null) {
 		      		ImageIcon icon = new ImageIcon(iconPath);
 		            enemy.setIcon(icon);
@@ -237,14 +274,15 @@ public class EntityManager {
 		game.repaint();
 		game.layeredPane.repaint();
 	}
+	
 
-	private void moveEnemies(Game game) {
+	private void moveEnemies(Game game) { // original funciton 
 		Iterator<Enemy> iterator = enemyList.iterator();
 		List<JLabel> labelsToRemove = new ArrayList<>();
 		
 		// = "/icons/playerIcons/player.png";
 		while (iterator.hasNext()) {
-			if(game.resume) continue;
+			if(game.isResume()) continue;
 			Enemy enemy = iterator.next();
 			JLabel enemyLabel = enemy.getLabel();
 			
@@ -278,14 +316,17 @@ public class EntityManager {
 	
 
 	public void spawnEnemy(Game game, int count) {
-		if (game.entityManager.enemyList.isEmpty() && !creatingEnemies) initialiseEnemies(game, count);
+		if (game.getEntityManager().enemyList.isEmpty() && !creatingEnemies) initialiseEnemies(game, count);
 		spawnerUpdater(game);
 	}
 
 	private void spawnerUpdater(Game game) {
-		if (game.stopWatch == game.levelUpTimes) {
-			enemySpawnRate += game.stopWatch / 1.5;
-			game.levelUpTimes *= 3.0 / 2;
+		if (game.getStopWatch() == game.getLevelUpTimes()) {
+			if(game.getStopWatch()>30 && game.getStopWatch()<50) return;
+			enemySpawnRate += game.getStopWatch() / 1.5;
+			game.setLevelUpTimes(game.getLevelUpTimes() + 10);
+			game.getStatusBarManager().updateLevel();
+			System.out.println("It is level up time : " + game.getLevelUpTimes());
 		}
 	}
 }

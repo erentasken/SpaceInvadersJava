@@ -5,18 +5,22 @@ import java.net.URL;
 import javax.sound.sampled.*;
 
 public class SoundManager {
-	Clip clip1;
-	Clip clip2;
-	Clip clip3;
-	Clip clip4;
-	AudioInputStream audioStream1;
-	AudioInputStream audioStream2;
-	AudioInputStream audioStream3;
-	boolean runOnce = true;
+	private Clip clip1;
+	private Clip clip2;
+	private Clip clip3;
+	private Clip clip4;
+	private Clip clip5;
+	private Clip clip6;
+	private AudioInputStream audioStream1;
+	private AudioInputStream audioStream2;
+	private AudioInputStream audioStream3;
+	private AudioInputStream audioStream4;
+	private AudioInputStream audioStream5;
+	private boolean runOnce = true;
+	private static boolean gameOver= false;
 	
-	URL gameSoundPath = getClass().getResource("/icons/gameOver/video-playback.wav");
 	public SoundManager() {
-        URL gameSoundURL = getClass().getResource("/sounds/video-playback.wav");
+        URL gameSoundURL = getClass().getResource("/resources/sounds/video-playback.wav");
         try {
             audioStream1 = AudioSystem.getAudioInputStream(gameSoundURL);
             clip1 = AudioSystem.getClip();
@@ -25,7 +29,7 @@ public class SoundManager {
             e.printStackTrace();
         }
         
-        gameSoundURL = getClass().getResource("/sounds/gameover.wav");
+        gameSoundURL = getClass().getResource("/resources/sounds/gameover.wav");
         try {
             audioStream1 = AudioSystem.getAudioInputStream(gameSoundURL);
             clip2 = AudioSystem.getClip();
@@ -34,7 +38,7 @@ public class SoundManager {
             e.printStackTrace();
         }
         
-        gameSoundURL = getClass().getResource("/sounds/gunshot.wav");
+        gameSoundURL = getClass().getResource("/resources/sounds/gunshot.wav");
         try {
         	audioStream2 = AudioSystem.getAudioInputStream(gameSoundURL);
             clip3 = AudioSystem.getClip();
@@ -43,7 +47,7 @@ public class SoundManager {
             e.printStackTrace();
         }
         
-        gameSoundURL = getClass().getResource("/sounds/enemyGunshot.wav");
+        gameSoundURL = getClass().getResource("/resources/sounds/enemyGunshot.wav");
         try {
         	audioStream3 = AudioSystem.getAudioInputStream(gameSoundURL);
             clip4 = AudioSystem.getClip();
@@ -51,7 +55,35 @@ public class SoundManager {
         } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
             e.printStackTrace();
         }
+        
+        gameSoundURL = getClass().getResource("/resources/sounds/damageTaken.wav");
+        try {
+        	audioStream4 = AudioSystem.getAudioInputStream(gameSoundURL);
+            clip5 = AudioSystem.getClip();
+            clip5.open(audioStream4);
+        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
+            e.printStackTrace();
+        }
+        
+        gameSoundURL = getClass().getResource("/resources/sounds/hitSound.wav");
+        try {
+        	audioStream5 = AudioSystem.getAudioInputStream(gameSoundURL);
+            clip6 = AudioSystem.getClip();
+            clip6.open(audioStream5);
+        } catch (UnsupportedAudioFileException | IOException | LineUnavailableException e) {
+            e.printStackTrace();
+        }
     }
+	
+	public void hitSound() {
+		clip6.setMicrosecondPosition(0);
+		clip6.start();
+	}
+	
+	public void damageTaken() {
+		clip5.setMicrosecondPosition(0);
+		clip5.start();
+	}
 	
 	public void enemyGunShotSound() {
 		clip4.setMicrosecondPosition(0);
@@ -64,9 +96,10 @@ public class SoundManager {
     }
 	
 	public void startGameOverSound() {
+		gameOver=true;
+		stopGameSound();
 		if(runOnce) {
 			runOnce = false;
-			System.out.println("i am running");
 			clip2.start();
 			decreaseVolume(clip2);
 			decreaseVolume(clip2);
@@ -74,13 +107,18 @@ public class SoundManager {
 	}
 	
 	public void startGameSound() {
+		clip1.setMicrosecondPosition(0);
 		clip1.start();
 		decreaseVolume(clip1);
 		decreaseVolume(clip1);
+		gameOver=false;
+		playSoundAgainWhenFinished(clip1);
+		
 	}
 	
 	public void stopGameSound() {
 		clip1.stop();
+		gameOver=true;
 	}
 	
     private static void decreaseVolume(Clip clip) {
@@ -93,7 +131,6 @@ public class SoundManager {
             newVolume = gainControl.getMinimum();
         }
         gainControl.setValue(newVolume);
-        System.out.println("Decreased volume by " + decreaseAmount + " dB. New volume: " + newVolume + " dB");
     }
 
     private static void increaseVolume(Clip clip) {
@@ -106,11 +143,14 @@ public class SoundManager {
             newVolume = gainControl.getMaximum();
         }
         gainControl.setValue(newVolume);
-        System.out.println("Increased volume by " + increaseAmount + " dB. New volume: " + newVolume + " dB");
     }
 
     private static void playSoundAgainWhenFinished(Clip clip) {
         clip.addLineListener(event -> {
+        	if(gameOver) {
+        		clip.stop();
+        		return;
+        	}
             if (event.getType() == LineEvent.Type.STOP) {
                 clip.setMicrosecondPosition(0);
                 clip.start();

@@ -3,14 +3,17 @@ import javax.swing.*;
 import java.awt.*;
 import java.net.URL;
 
+@SuppressWarnings("serial")
 public class StatusBarManager extends JPanel {
     private JLabel scoreLabel;
     private JLabel lifeLabel;
     private JLabel FPSlabel;
-    JLabel localLabel;
-    int counter = 0;
-    String gameOverIMG;
-    URL iconPath;
+    private JLabel level;
+    private JLabel localLabel;
+    private int counter = 0;
+    private int spawnerLevel = 1;
+    private String gameOverIMG;
+    private URL iconPath;
     boolean resetOnce = true;
     
     public StatusBarManager(Game game) {
@@ -20,17 +23,26 @@ public class StatusBarManager extends JPanel {
         scoreLabel.setFont(new Font("Arial", Font.BOLD, 15));
         scoreLabel.setForeground(Color.WHITE);
         
-        lifeLabel = new JLabel("Life: ");
+        lifeLabel = new JLabel("Life: 3");
         lifeLabel.setFont(new Font("Arial", Font.BOLD, 15));
         lifeLabel.setForeground(Color.WHITE);
+        
+        level = new JLabel("Mob Spawner Level: 0");
+        level.setFont(new Font("Arial", Font.BOLD, 15));
+        level.setForeground(Color.WHITE);
+        
         
         FPSlabel = new JLabel("FPS: 60");
         FPSlabel.setFont(new Font("Arial", Font.BOLD, 15));
         FPSlabel.setForeground(Color.WHITE);
         
-        //add(Box.createRigidArea(new Dimension(50, 0))); // Add spacing between labels
+        
+        add(level);
+        add(Box.createRigidArea(new Dimension(35, 0))); // Add spacing between labels
         add(lifeLabel);
+        add(Box.createRigidArea(new Dimension(35, 0))); // Add spacing between labels
         add(scoreLabel);
+        add(Box.createRigidArea(new Dimension(35, 0))); // Add spacing between labels
         add(FPSlabel);
     }
     
@@ -40,8 +52,9 @@ public class StatusBarManager extends JPanel {
             remove(scoreLabel);
             remove(lifeLabel);
             remove(FPSlabel);
+            remove(level);
             setLayout(null);
-            gameOverIMG = "/icons/gameOver/Game4.png";
+            gameOverIMG = "/resources/icons/gameOver/Game4.png";
             iconPath = getClass().getResource(gameOverIMG);
             if (iconPath == null) {
                 System.out.println("Failed to load the ammo image.");
@@ -64,9 +77,9 @@ public class StatusBarManager extends JPanel {
     	resetStatusBarInitialiseGameOver(game);
     	resetOnce = false;
         if (counter % 2 == 0)
-            gameOverIMG = "/icons/gameOver/Game5.png";
+            gameOverIMG = "/resources/icons/gameOver/Game5.png";
         else if (counter % 2 == 1)
-            gameOverIMG= "/icons/gameOver/Game4.png";
+            gameOverIMG= "/resources/icons/gameOver/Game4.png";
         counter++;
         iconPath = getClass().getResource(gameOverIMG);
         if (iconPath == null) {
@@ -77,8 +90,13 @@ public class StatusBarManager extends JPanel {
         localLabel.setIcon(icon1);
     }
     
-    public void deleteGameOverTable(Game game) {
-    	if(localLabel!=null) remove(localLabel);
+    public void deleteGameOverTable() {
+    	try {
+    		remove(localLabel);
+    	}catch(NullPointerException e) {
+    		System.out.println("exception handled"); 
+    	}
+    	
     }
 
     
@@ -92,6 +110,10 @@ public class StatusBarManager extends JPanel {
 
     public void updateLife(int life) {
         lifeLabel.setText("Life: " + life);
+    }
+    
+    public void updateLevel() {
+        level.setText("Mob Spawner Level: " + spawnerLevel++);
     }
 }
 

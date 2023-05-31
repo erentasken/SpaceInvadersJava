@@ -1,26 +1,33 @@
+package GUI;
 import javax.swing.*;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
-
 import java.util.HashMap;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.Map.Entry;
 
 import Main.*;
+import Manager.*;
 
+@SuppressWarnings("serial")
 public class MyGUI extends JFrame {
 	static HashMap<String, String> playerInfo = new HashMap<String, String>();
 	private PlayerScoreManager scoreBoard;
 	private Game currentGame;
 	private String inputString;
+	@SuppressWarnings("unused")
 	private HighScoreGUI highScoreGUI;
 	int junk=0;
 	int playerNumber = 0;
+	
+	JLabel startLabel;
     public MyGUI(){
         initializeMenuBar();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -44,6 +51,28 @@ public class MyGUI extends JFrame {
                 System.exit(0);
             }
         });
+        
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (currentGame == null) {
+                    SwingUtilities.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                        	triggerGameStart();
+                        }
+                    });
+                }
+            }
+        });
+        
+        Icon icon = new ImageIcon(getClass().getResource("/resources/icons/startingIcon.png"));
+        startLabel = new JLabel(icon);
+        startLabel.setBounds(0, 0, this.getWidth(), this.getHeight());
+        startLabel.setVisible(true);
+        add(startLabel);
+        revalidate();
+        repaint();
         pack();
     }
 
@@ -68,24 +97,23 @@ public class MyGUI extends JFrame {
         menuBar.add(helpMenu);
         this.setJMenuBar(menuBar);
         
+        pack();
+        
+
+        
         fileMenu.addMenuListener(new MenuListener() {
             @Override
             public void menuSelected(MenuEvent e) {
-                // Menu has been opened
             	if(currentGame!=null)currentGame.resumeGame(true);
-                System.out.println("Menu opened");
             }
 
             @Override
             public void menuDeselected(MenuEvent e) {
-                // Menu has been closed
             	if(currentGame!=null)currentGame.resumeGame(false);
-                System.out.println("Menu closed");
             }
 
             @Override
             public void menuCanceled(MenuEvent e) {
-                // Menu has been canceled (e.g., user clicks outside the menu)
                 System.out.println("Menu canceled");
             }
         });
@@ -93,21 +121,18 @@ public class MyGUI extends JFrame {
         helpMenu.addMenuListener(new MenuListener() {
             @Override
             public void menuSelected(MenuEvent e) {
-                // Menu has been opened
             	if(currentGame!=null)currentGame.resumeGame(true);
                 System.out.println("Menu opened");
             }
 
             @Override
             public void menuDeselected(MenuEvent e) {
-                // Menu has been closed
             	if(currentGame!=null)currentGame.resumeGame(false);
                 System.out.println("Menu closed");
             }
 
             @Override
             public void menuCanceled(MenuEvent e) {
-                // Menu has been canceled (e.g., user clicks outside the menu)
                 System.out.println("Menu canceled");
             }
         });
@@ -151,30 +176,7 @@ public class MyGUI extends JFrame {
                 SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                    	if(currentGame!=null) {
-                    		currentGame.gameOver=false;
-                    		currentGame.reset=true;
-                    	}
-                        Game game = new Game();
-                        game.startGame();
-                        add(game, BorderLayout.CENTER);//add(game);
-                        game.requestFocusInWindow();
-                        currentGame = game;
-                        Thread stopIndicatorThread = new Thread(()->{
-                    		while(!currentGame.reset) {
-                    			if(currentGame.gameOver) {
-                    				System.out.println("gameover");
-                    				saveTheScore();
-                    				break;
-                    			}
-                    			System.out.print("");
-                    			continue;
-                    		}
-                    		if(!currentGame.gameOver) {
-                    			saveTheScore();
-                    		}
-                    	});
-                    	stopIndicatorThread.start();
+                    	triggerGameStart();
                     }
                 });
             }
@@ -187,6 +189,35 @@ public class MyGUI extends JFrame {
                 System.exit(0);
             }
         });
+    }
+    
+    public void triggerGameStart() {
+    	remove(startLabel);
+    	if(currentGame!=null) { // if there is game in progress when the user click 
+    		currentGame.gameOver=false; // on playGame button, then game is going to 
+    		currentGame.reset=true; // reset = true , 
+    	}
+        Game game = new Game();
+        game.startGame();
+        add(game, BorderLayout.CENTER);//add(game);
+        game.requestFocusInWindow();
+        currentGame = game;
+        Thread stopIndicatorThread = new Thread(()->{ // that thread catchs whether the game is stop or not 
+    		while(!currentGame.reset) {
+    			if(currentGame.gameOver) {
+    				currentGame.getStatusBarManager().deleteGameOverTable();
+    				saveTheScore();
+    				break;
+    			}
+    			System.out.print("");
+    			continue;
+    		}
+    		if(!currentGame.gameOver) {
+    			currentGame.getSoundManager().stopGameSound();
+    			saveTheScore();
+    		}
+    	});
+    	stopIndicatorThread.start();
     }
     
     public void saveTheScore() {
@@ -203,7 +234,6 @@ public class MyGUI extends JFrame {
             }
             counter++;
 		}
-        System.out.println("The key for value " + output + " is the score : " + score);
         try {
 			scoreBoard.writeToFile(output, score);
 		} catch (IOException e) {

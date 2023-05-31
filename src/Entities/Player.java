@@ -1,4 +1,4 @@
-package Main;
+package Entities;
 import javax.swing.*;
 
 

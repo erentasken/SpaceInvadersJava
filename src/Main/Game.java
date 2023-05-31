@@ -1,14 +1,11 @@
 package Main;
+import Manager.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
 import java.util.*;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.concurrent.CountDownLatch;
-
 import javax.swing.*;
 import javax.swing.Timer;
+@SuppressWarnings("serial")
 public class Game extends JPanel implements KeyListener{
     public JLabel enemyLabel;
     protected boolean fireAllowed;
@@ -16,13 +13,15 @@ public class Game extends JPanel implements KeyListener{
 
     public int score =0;
     private static final double BULLET_DELAY = 2e8;
-    long lastBulletTime = 0;
-    long time = System.nanoTime();
-    public int stopWatch = 0;
-    public int levelUpTimes = 10;
-    final BulletManager bulletManager = new BulletManager();
-    protected EntityManager entityManager = new EntityManager();
-    public StatusBarManager statusBarManager = new StatusBarManager(this);;
+    private long lastBulletTime = 0;
+    private long time = System.nanoTime();
+    private int stopWatch = 0;
+    private int levelUpTimes = 10;
+    private final BulletManager bulletManager = new BulletManager();
+    private final EntityManager entityManager = new EntityManager();
+    private final StatusBarManager statusBarManager = new StatusBarManager(this);;
+    private final SoundManager soundManager = new SoundManager();
+    
     public boolean reset = false;
     private Timer timer;
     public boolean gameOver = false;
@@ -31,29 +30,28 @@ public class Game extends JPanel implements KeyListener{
     private int frameCount = 0;
     private long lastFPSTime = 0;
     boolean resetOnce = true;
-    boolean resume = false;
-
+    private boolean resume = false;
 
     Background background;
     public JLayeredPane layeredPane = new JLayeredPane();;
     
     public boolean wait = false;
-
+    public boolean mouseTrigger =false;
     
-    SoundManager soundManager = new SoundManager();
+    
     
     public Game() {
-    	pressedKeys = new HashSet<>();
+    	pressedKeys = new HashSet<>(); 
     }
      
     public boolean startGame() {
     	setTheFrame();
-    	soundManager.startGameSound();
-    	entityManager.createPlayerLabel(this);
-    	statusBarManager.updateScore(0);
-    	statusBarManager.updateLife(3);
-    	statusBarManager.setBounds(0, 0, this.getWidth(), this.getHeight());
-    	layeredPane.add(statusBarManager);
+    	getSoundManager().startGameSound();
+    	getEntityManager().createPlayerLabel(this);
+    	getStatusBarManager().updateScore(0);
+    	getStatusBarManager().updateLife(3);
+    	getStatusBarManager().setBounds(0, 0, this.getWidth(), this.getHeight());
+    	layeredPane.add(getStatusBarManager());
     	startGameLoop();
     	
     	return true;
@@ -63,10 +61,10 @@ public class Game extends JPanel implements KeyListener{
     	if(resetOnce) {
     		resetOnce = false;
         	background.deleteBackground();
-            entityManager.deleteAllEnemies(this);
-            entityManager.deletePlayer(this);
-            bulletManager.deleteAllBullets(this);
-            soundManager.stopGameSound();
+            getEntityManager().deleteAllEnemies(this);
+            getEntityManager().deletePlayer(this);
+            getBulletManager().deleteAllBullets(this);
+            getSoundManager().stopGameSound();
     	}
     }
 
@@ -75,16 +73,17 @@ public class Game extends JPanel implements KeyListener{
         timer = new Timer(15, e -> {
         	if(gameOver) {
         		resetPlayGround();
-        		soundManager.startGameOverSound();
-        		statusBarManager.gameOverTable(this, score);
+        		getSoundManager().startGameOverSound();
+        		getStatusBarManager().gameOverTable(this, score);
+        		timer.stop();
         	}
         	else if (reset) {
+        		resetPlayGround();
+        		getSoundManager().startGameSound();
                 timer.stop();
-                resetPlayGround();
                 return;
             }else{
-            	statusBarManager.deleteGameOverTable(this);
-            	while(resume) {
+            	while(isResume()) {
             		System.out.println("game resumed");
             		try {
 						Thread.sleep(100);
@@ -94,11 +93,11 @@ public class Game extends JPanel implements KeyListener{
 					}
             	}
             	frameCount++;
-                if(stopWatch == 0 ) entityManager.spawnEnemy(this, 5);
-                stopWatch = (int) ((System.nanoTime()-time)/1000000000);
-                bulletManager.bulletLoop(this);
-                entityManager.movePlayer(this);
-                entityManager.enemyLoop(this);
+                if(getStopWatch() == 0 ) getEntityManager().spawnEnemy(this, 5);
+                setStopWatch((int) ((System.nanoTime()-time)/1000000000));
+                getBulletManager().bulletLoop(this);
+                getEntityManager().movePlayer(this);
+                getEntityManager().enemyLoop(this);
             }
         });
         timer.start();
@@ -113,15 +112,20 @@ public class Game extends JPanel implements KeyListener{
                 frameCount = 0;
                 lastFPSTime = currentTime;
             }
-            statusBarManager.updateFPS(fps);
+            getStatusBarManager().updateFPS(fps);
         });
         fpsTimer.start();
     }
     
     
-    public void resumeGame(boolean boolVal) {
+    private void setStopWatch(int i) {
+		// TODO Auto-generated method stub
+		stopWatch = i;
+	}
+
+	public void resumeGame(boolean boolVal) {
     	System.out.println("resume value " + boolVal);
-    	this.resume = boolVal;
+    	this.setResume(boolVal);
     	if(boolVal) timer.stop();
     	else timer.start();
     }
@@ -157,7 +161,7 @@ public class Game extends JPanel implements KeyListener{
             long elapsedTime = currentTime - lastBulletTime;
 
             if (elapsedTime >= BULLET_DELAY) {
-                bulletManager.throwBullet(this, entityManager.player, fireAllowed); // convert it into getPlayer()
+                getBulletManager().throwBullet(this, getEntityManager().player, fireAllowed); // convert it into getPlayer()
                 lastBulletTime = currentTime;
             }
         }
@@ -177,4 +181,40 @@ public class Game extends JPanel implements KeyListener{
     	if(reset) return false;
     	else return pressedKeys.contains(keyCode);
     }
+
+	public EntityManager getEntityManager() {
+		return entityManager;
+	}
+
+	public boolean isResume() {
+		return resume;
+	}
+
+	public void setResume(boolean resume) {
+		this.resume = resume;
+	}
+
+	public StatusBarManager getStatusBarManager() {
+		return statusBarManager;
+	}
+
+	public BulletManager getBulletManager() {
+		return bulletManager;
+	}
+
+	public SoundManager getSoundManager() {
+		return soundManager;
+	}
+
+	public int getLevelUpTimes() {
+		return levelUpTimes;
+	}
+
+	public void setLevelUpTimes(double d) {
+		this.levelUpTimes = (int) d;
+	}
+
+	public int getStopWatch() {
+		return stopWatch;
+	}
 }
