@@ -9,14 +9,13 @@ import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
-import java.util.TimerTask;
 import java.util.Timer;
 
 public class BulletManager {
     private final List<JLabel> bulletList;
     private final List<JLabel> enemyBulletList;
     private Timer enemyBulletTimer;
-    Random random;
+    private boolean startOnce = true;
     public BulletManager(){
         bulletList = new ArrayList<JLabel>();
         enemyBulletList = new ArrayList<JLabel>();
@@ -94,6 +93,7 @@ public class BulletManager {
             Rectangle playerBounds = game.getEntityManager().player.getLabel().getBounds();
             if (enemyBulletLabel.isVisible() && enemyBulletBounds.intersects(playerBounds)) {
                 game.getEntityManager().player.decreaseHP();
+                game.getSoundManager().damageTakenV2();
                 game.getStatusBarManager().updateLife(game.getEntityManager().player.getHP());
                 if (game.getEntityManager().player.getHP() <= 0) {
                     game.handleGameOver();
@@ -105,35 +105,46 @@ public class BulletManager {
     }
     
     
-    
+   
     public void startEnemyBulletTimer(Game game) {
-        enemyBulletTimer = new Timer();
-        enemyBulletTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-            	if (game.isResume() || game.gameOver || game.reset) {
-                    enemyBulletTimer.cancel();
-                    enemyBulletTimer.purge();
-                    return; // Stop the timer if game.resume is true
-                }
-                if (game.getEntityManager().enemyList.isEmpty()) {
-                    return; // No enemies to fire bullets
-                }
-                
+    	if(startOnce) {
+    		startOnce = false;
+        	Thread enemyBulletThread = new Thread(()->{
+            	while(true) {
+            		System.out.println("HIII");
+                	if (game.isResume() || game.gameOver || game.reset) {
+                		System.out.println("i am in bullet timer first if condition resume value : " + game.isResume());
+                        break; // Stop the timer if game.resume is true
+                    }
+                    if (game.getEntityManager().enemyList.isEmpty()) {
+                        continue; // No enemies to fire bullets
+                    }
+                    
+                    Random random = new Random();
+                    int enemyIndex = random.nextInt(game.getEntityManager().enemyList.size());
+                    Enemy enemy = game.getEntityManager().enemyList.get(enemyIndex);
+                    if (enemy == null || !enemy.getLabel().isVisible()) {
+                        return; // Selected enemy is null or not visible
+                    }
+                    
 
-                Random random = new Random();
-                int enemyIndex = random.nextInt(game.getEntityManager().enemyList.size());
-                Enemy enemy = game.getEntityManager().enemyList.get(enemyIndex);
-                if (enemy == null || !enemy.getLabel().isVisible()) {
-                    return; // Selected enemy is null or not visible
-                }
 
-                int enemyX = enemy.getLabel().getX();
-                int enemyY = enemy.getLabel().getY() + enemy.getLabel().getHeight() + 10;
-                createEnemyBulletLabel(game, enemyX + 15, enemyY);
-                game.getSoundManager().enemyGunShotSound();
-            }
-        }, 4000, 4000);
+                    int enemyX = enemy.getLabel().getX();
+                    int enemyY = enemy.getLabel().getY() + enemy.getLabel().getHeight() + 10;
+                    createEnemyBulletLabel(game, enemyX + 15, enemyY);
+                    game.getSoundManager().enemyGunShotSound();
+                    try {
+        				Thread.sleep(2000);
+        			} catch (InterruptedException e) {
+        				// TODO Auto-generated catch block
+        				e.printStackTrace();
+        			}
+            	}
+        	});
+        	enemyBulletThread.start();
+    	}
+
+
     }
     
     private void createEnemyBulletLabel(Game game, int x, int y){

@@ -5,15 +5,17 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
 public class PlayerScoreManager {
-	String fileName = "data.txt";
-	File file;
-	int count=1;
+	private String fileName = "data.txt";
+	private File file;
+	private int count=1;
+	
 	public PlayerScoreManager() throws IOException {
 		file = new File(fileName);
 		if (!file.exists()) {
             file.createNewFile();
         }
 	}
+	
 	public void writeToFile(String playerName, int playerScore) throws IOException {
 		try {
             FileWriter writer = new FileWriter(fileName, true);
@@ -25,6 +27,7 @@ public class PlayerScoreManager {
             e.printStackTrace();
         }
 	}
+	
 	public String readTheFile() {
 		String fileOutput=null;
         try {

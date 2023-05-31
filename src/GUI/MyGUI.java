@@ -24,8 +24,7 @@ public class MyGUI extends JFrame {
 	private String inputString;
 	@SuppressWarnings("unused")
 	private HighScoreGUI highScoreGUI;
-	int junk=0;
-	int playerNumber = 0;
+	private int playerNumber = 0;
 	
 	JLabel startLabel;
     public MyGUI(){
@@ -205,7 +204,7 @@ public class MyGUI extends JFrame {
         Thread stopIndicatorThread = new Thread(()->{ // that thread catchs whether the game is stop or not 
     		while(!currentGame.reset) {
     			if(currentGame.gameOver) {
-    				currentGame.getStatusBarManager().deleteGameOverTable();
+    				//currentGame.getStatusBarManager().deleteGameOverTable();
     				saveTheScore();
     				break;
     			}

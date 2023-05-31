@@ -12,9 +12,8 @@ public class Background {
 
     public Background(Game game) {
         this.game = game;
-        tileSize = 50; // size of the pictures in this case we are using 50x50
+        tileSize = 50; // size of the pictures in this case we are using 50x50 pictures
 
-        // Load tile images from resources
         tileIcons = new ImageIcon[5];
         loadIcons("/resources/icons/background/oto");
 
@@ -22,10 +21,8 @@ public class Background {
         int numHorizontalTiles = game.getWidth() / tileSize;
         numVerticalTiles = game.getHeight() / tileSize;
 
-        // Create a 2D array of JLabels to represent the tiles
         tileLabels = new JLabel[numVerticalTiles][numHorizontalTiles];
 
-        // Create and position the tile labels
         for (int row = 0; row < numVerticalTiles; row++) {
             for (int col = 0; col < numHorizontalTiles; col++) {
                 shuffleTileIcons();
@@ -79,7 +76,6 @@ public class Background {
                     }
                 }
 
-                // Shuffle the tile icons randomly
                 shuffleTileIcons();
 
                 game.repaint();
@@ -103,7 +99,6 @@ public class Background {
             return;
         }
 
-        // Update the tile icons with the new icons
         tileIcons = newIcons;
 
         // Update the tile labels with the new icons

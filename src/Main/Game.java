@@ -17,10 +17,11 @@ public class Game extends JPanel implements KeyListener{
     private long time = System.nanoTime();
     private int stopWatch = 0;
     private int levelUpTimes = 10;
-    private final BulletManager bulletManager = new BulletManager();
-    private final EntityManager entityManager = new EntityManager();
-    private final StatusBarManager statusBarManager = new StatusBarManager(this);;
-    private final SoundManager soundManager = new SoundManager();
+
+    private final BulletManager bulletManager; 
+    private final EntityManager entityManager;
+    private final StatusBarManager statusBarManager;
+    private final SoundManager soundManager;
     
     public boolean reset = false;
     private Timer timer;
@@ -32,8 +33,9 @@ public class Game extends JPanel implements KeyListener{
     boolean resetOnce = true;
     private boolean resume = false;
 
-    Background background;
-    public JLayeredPane layeredPane = new JLayeredPane();;
+    private Background background;
+
+    public JLayeredPane layeredPane; 
     
     public boolean wait = false;
     public boolean mouseTrigger =false;
@@ -42,6 +44,11 @@ public class Game extends JPanel implements KeyListener{
     
     public Game() {
     	pressedKeys = new HashSet<>(); 
+    	bulletManager = new BulletManager();
+        entityManager = new EntityManager();
+        statusBarManager = new StatusBarManager(this);;
+        soundManager = new SoundManager();
+        layeredPane = new JLayeredPane();;
     }
      
     public boolean startGame() {
@@ -65,6 +72,8 @@ public class Game extends JPanel implements KeyListener{
             getEntityManager().deletePlayer(this);
             getBulletManager().deleteAllBullets(this);
             getSoundManager().stopGameSound();
+            repaint();
+            revalidate();
     	}
     }
 
@@ -84,7 +93,6 @@ public class Game extends JPanel implements KeyListener{
                 return;
             }else{
             	while(isResume()) {
-            		System.out.println("game resumed");
             		try {
 						Thread.sleep(100);
 					} catch (InterruptedException e1) {
@@ -93,7 +101,7 @@ public class Game extends JPanel implements KeyListener{
 					}
             	}
             	frameCount++;
-                if(getStopWatch() == 0 ) getEntityManager().spawnEnemy(this, 5);
+                if(getStopWatch() == 0 ) getEntityManager().spawnEnemy(this, getEntityManager().getSpawnedEnemyCounter());
                 setStopWatch((int) ((System.nanoTime()-time)/1000000000));
                 getBulletManager().bulletLoop(this);
                 getEntityManager().movePlayer(this);
@@ -124,7 +132,6 @@ public class Game extends JPanel implements KeyListener{
 	}
 
 	public void resumeGame(boolean boolVal) {
-    	System.out.println("resume value " + boolVal);
     	this.setResume(boolVal);
     	if(boolVal) timer.stop();
     	else timer.start();

@@ -8,6 +8,7 @@ import java.awt.event.KeyEvent;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 
@@ -23,14 +24,12 @@ public class EntityManager {
 	private int enemySpeed = 1; // Enemy's movement speed
 	private int horizontalMoveEnemy = 1;
 	private boolean creatingEnemies; // controlling the period of enemy spawning
-	private int enemySpawnRate; // time by time spawned enemy count is increasing
+	private int spawnedEnemyCounter = 2; // time by time spawned enemy count is increasing
 	
 	private Icon icon;
 	private URL iconPath;
 	private JLabel localLabel;
 	
-	
-
 	public EntityManager() {
 		enemyList = new ArrayList<Enemy>();
 	}
@@ -163,42 +162,61 @@ public class EntityManager {
 
 	public void enemyLoop(Game game) {
 		moveEnemies(game);
-		spawnEnemy(game, enemySpawnRate);
+		spawnEnemy(game, getSpawnedEnemyCounter());
+	}
+	private void initialiseEnemies(Game game, int count) {
+	    System.out.println("initialiseEnemies is running");
+	    creatingEnemies = true;
+	    Thread createEnemies = new Thread(() -> {
+	        System.out.println("createEnemies thread is running");
+	        if (game.reset || game.gameOver || game.isResume())
+	            return;
+
+	        Random random = new Random();
+	        LinkedList<Integer> availableXValues = new LinkedList<>(); // Queue for available x values
+	        int z = random.nextInt(count);
+	        int z1= random.nextInt(count);
+	        int z2 = random.nextInt(count);
+
+	        for (int i = 0; i < game.getWidth() - 60; i += 60) {
+	            availableXValues.offer(i); // Add all possible x values to the queue
+	        }
+
+	        for (int i = 0; i < count; i++) {
+	            if (game.reset || game.gameOver || game.isResume())
+	                break;
+	            System.out.println("new enemies are spawning");
+
+	            if (z == i || z1 == i || z2 ==i) {
+	                try {
+	                    Thread.sleep(2000);
+	                } catch (InterruptedException e) {
+	                    throw new RuntimeException(e);
+	                }
+	                for (int j = 0; j < game.getWidth() - 60; j += 60) {
+	    	            availableXValues.offer(j); // Add all possible x values to the queue
+	    	        }
+	            }
+
+	            int x;
+	            int y = -50; // Starting position above the screen
+
+	            if (availableXValues.isEmpty()) {
+	                System.out.println("No available x values. Breaking out of enemy creation loop.");
+	                break;
+	            }
+
+	            x = availableXValues.poll(); // Take the first available x value from the queue
+	            createEnemyLabel(game, x, y);
+	        }
+	        game.getBulletManager().startEnemyBulletTimer(game);
+	        creatingEnemies = false;
+	    });
+
+	    createEnemies.start();
 	}
 
-	private void initialiseEnemies(Game game, int count) { // original method
-		creatingEnemies = true;
-		Thread createEnemies = new Thread(() -> {
-			if(game.isResume()) {
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			if(game.reset || game.gameOver || game.isResume()) 
-				return;
-			
-			Random random = new Random();
-			for (int i = 0; i < count; i++) {
-				if (game.reset || game.gameOver || game.isResume()) break;
-				
-				try {
-					Thread.sleep(2000);
-				} catch (InterruptedException e) {
-					throw new RuntimeException(e);
-				}
-				
-				int x = random.nextInt(game.getWidth() - 50); // Random x position
-				int y = -50; // Starting position above the screen
-				createEnemyLabel(game, x, y);
-			}
-			game.getBulletManager().startEnemyBulletTimer(game);
-			creatingEnemies = false;
-		});
-		createEnemies.start();
-	}
+	
 
 	private void createEnemyLabel(Game game, int x, int y) {
 		String enemyOneImgName = "/resources/icons/enemyIcons/enemy1.png";
@@ -276,7 +294,7 @@ public class EntityManager {
 	}
 	
 
-	private void moveEnemies(Game game) { // original funciton 
+	private void moveEnemies(Game game) { 
 		Iterator<Enemy> iterator = enemyList.iterator();
 		List<JLabel> labelsToRemove = new ArrayList<>();
 		
@@ -321,12 +339,23 @@ public class EntityManager {
 	}
 
 	private void spawnerUpdater(Game game) {
+		
 		if (game.getStopWatch() == game.getLevelUpTimes()) {
-			if(game.getStopWatch()>30 && game.getStopWatch()<50) return;
-			enemySpawnRate += game.getStopWatch() / 1.5;
+			//if(game.getStopWatch()>30 && game.getStopWatch()<50) return;
+			//enemySpawnRate += game.getStopWatch() * 2;
+			setSpawnedEnemyCounter(getSpawnedEnemyCounter() + 3);
+			//if(enemySpawnRate>=8) enemySpawnRate = 3;
+			System.out.println("new spawn rate : " + getSpawnedEnemyCounter());
 			game.setLevelUpTimes(game.getLevelUpTimes() + 10);
 			game.getStatusBarManager().updateLevel();
-			System.out.println("It is level up time : " + game.getLevelUpTimes());
 		}
+	}
+
+	public int getSpawnedEnemyCounter() {
+		return spawnedEnemyCounter;
+	}
+
+	public void setSpawnedEnemyCounter(int spawnedEnemyCounter) {
+		this.spawnedEnemyCounter = spawnedEnemyCounter;
 	}
 }

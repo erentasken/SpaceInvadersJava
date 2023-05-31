@@ -1,4 +1,0 @@
-INDEX VERSION 1.132+C:\Users\erenn\eclipse-workspace\SpaceInvadersJava\.metadata\.plugins\org.eclipse.jdt.core
-3959137331.index
-3469248815.index
-1865797976.index
