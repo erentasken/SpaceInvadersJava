@@ -89,31 +89,6 @@ public class Background {
         thread.start();
     }
     
-    public void updateBackgroundIcons(String newIconSetPath) {
-        ImageIcon[] newIcons = new ImageIcon[5];
-        loadIcons(newIconSetPath);
-
-        // Check if the number of new icons matches the existing number of icons
-        if (newIcons.length != tileIcons.length) {
-            System.out.println("Failed to update background icons. The number of new icons is different.");
-            return;
-        }
-
-        tileIcons = newIcons;
-
-        // Update the tile labels with the new icons
-        for (int row = 0; row < numVerticalTiles; row++) {
-            for (int col = 0; col < tileLabels[row].length; col++) {
-                JLabel tileLabel = tileLabels[row][col];
-                int tileIndex = (row + col) % tileIcons.length;
-                ImageIcon tileIcon = tileIcons[tileIndex];
-                tileLabel.setIcon(tileIcon);
-            }
-        }
-
-        // Repaint the game panel to reflect the changes
-        game.repaint();
-    }
 
     private void shuffleTileIcons() {
         List<ImageIcon> iconList = Arrays.asList(tileIcons);

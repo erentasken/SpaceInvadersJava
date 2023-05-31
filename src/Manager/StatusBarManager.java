@@ -59,7 +59,7 @@ public class StatusBarManager extends JPanel {
             gameOverIMG = "/resources/icons/gameOver/Game4.png";
             iconPath = getClass().getResource(gameOverIMG);
             if (iconPath == null) {
-                System.out.println("Failed to load the ammo image.");
+                System.out.println("Failed to load the gameover image.");
                 return;
             }
             Icon icon = new ImageIcon(iconPath);
@@ -80,7 +80,6 @@ public class StatusBarManager extends JPanel {
     		while(game.gameOver) {
     			game.getSoundManager().stopGameSound();
     			if(game.isResume())continue;
-    			System.out.println("gameOver table loop");
     	    	resetStatusBarInitialiseGameOver(game);
     	        if (counter % 2 == 0)
     	            gameOverIMG = "/resources/icons/gameOver/Game5.png";
@@ -89,13 +88,12 @@ public class StatusBarManager extends JPanel {
     	        counter++;
     	        iconPath = getClass().getResource(gameOverIMG);
     	        if (iconPath == null) {
-    	            System.out.println("Failed to load the ammo image.");
+    	            System.out.println("Failed to load the gameover image.");
     	            return;
     	        }
     	        Icon icon1 = new ImageIcon(iconPath);
     	        localLabel.setIcon(icon1);
     		}
-    		System.out.println("I've left the loop. See yah");
     		deleteGameOverTable();
     	});
     	gameOver.start();

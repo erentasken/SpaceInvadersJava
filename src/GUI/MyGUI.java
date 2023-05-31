@@ -113,7 +113,6 @@ public class MyGUI extends JFrame {
 
             @Override
             public void menuCanceled(MenuEvent e) {
-                System.out.println("Menu canceled");
             }
         });
         
@@ -121,18 +120,15 @@ public class MyGUI extends JFrame {
             @Override
             public void menuSelected(MenuEvent e) {
             	if(currentGame!=null)currentGame.resumeGame(true);
-                System.out.println("Menu opened");
             }
 
             @Override
             public void menuDeselected(MenuEvent e) {
             	if(currentGame!=null)currentGame.resumeGame(false);
-                System.out.println("Menu closed");
             }
 
             @Override
             public void menuCanceled(MenuEvent e) {
-                System.out.println("Menu canceled");
             }
         });
 
@@ -143,7 +139,6 @@ public class MyGUI extends JFrame {
 				if(currentGame!=null) currentGame.resumeGame(true);
 				// TODO Auto-generated method stub
 				inputString = scoreBoard.readTheFile();
-				System.out.println(inputString);
 				if(inputString !=null) highScoreGUI = new HighScoreGUI(inputString, currentGame);
 			}
         	

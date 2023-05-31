@@ -7,6 +7,7 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -301,26 +302,31 @@ public class EntityManager {
 		// = "/icons/playerIcons/player.png";
 		while (iterator.hasNext()) {
 			if(game.isResume()) continue;
-			Enemy enemy = iterator.next();
-			JLabel enemyLabel = enemy.getLabel();
-			
-			int x = enemyLabel.getX();
-			int y = enemyLabel.getY();
-			int dy = enemy.getSpeed();
+			try {
+				Enemy enemy = iterator.next();
+				JLabel enemyLabel = enemy.getLabel();
+				
+				int x = enemyLabel.getX();
+				int y = enemyLabel.getY();
+				int dy = enemy.getSpeed();
 
-			if (x >= game.getWidth() - enemyLabel.getWidth())
-				horizontalMoveEnemy = -1;
-			if (x <= 0)
-				horizontalMoveEnemy = 1;
-			x += horizontalMoveEnemy;
-			enemyLabel.setLocation(x, y + dy);
+				if (x >= game.getWidth() - enemyLabel.getWidth())
+					horizontalMoveEnemy = -1;
+				if (x <= 0)
+					horizontalMoveEnemy = 1;
+				x += horizontalMoveEnemy;
+				enemyLabel.setLocation(x, y + dy);
 
-			if (y > game.getHeight() || !enemyLabel.isVisible()) {
-				// Enemy has reached the bottom of the screen or is not visible, mark it for
-				// removal
-				iterator.remove();
-				labelsToRemove.add(enemyLabel);
+				if (y > game.getHeight() || !enemyLabel.isVisible()) {
+					// Enemy has reached the bottom of the screen or is not visible, mark it for
+					// removal
+					iterator.remove();
+					labelsToRemove.add(enemyLabel);
+				}
+			}catch(ConcurrentModificationException e) {
+				System.out.println("exception handled");
 			}
+
 		}
 		// Remove the marked labels from the container
 		for (JLabel label : labelsToRemove) {
@@ -341,11 +347,8 @@ public class EntityManager {
 	private void spawnerUpdater(Game game) {
 		
 		if (game.getStopWatch() == game.getLevelUpTimes()) {
-			//if(game.getStopWatch()>30 && game.getStopWatch()<50) return;
-			//enemySpawnRate += game.getStopWatch() * 2;
 			setSpawnedEnemyCounter(getSpawnedEnemyCounter() + 3);
-			//if(enemySpawnRate>=8) enemySpawnRate = 3;
-			System.out.println("new spawn rate : " + getSpawnedEnemyCounter());
+			if(spawnedEnemyCounter>=20) spawnedEnemyCounter= 3;
 			game.setLevelUpTimes(game.getLevelUpTimes() + 10);
 			game.getStatusBarManager().updateLevel();
 		}

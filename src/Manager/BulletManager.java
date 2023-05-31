@@ -111,9 +111,8 @@ public class BulletManager {
     		startOnce = false;
         	Thread enemyBulletThread = new Thread(()->{
             	while(true) {
-            		System.out.println("HIII");
+            		System.out.println(""); // it is importan for enemyBullet don't delete.
                 	if (game.isResume() || game.gameOver || game.reset) {
-                		System.out.println("i am in bullet timer first if condition resume value : " + game.isResume());
                         break; // Stop the timer if game.resume is true
                     }
                     if (game.getEntityManager().enemyList.isEmpty()) {
