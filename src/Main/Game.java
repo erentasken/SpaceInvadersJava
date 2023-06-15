@@ -37,8 +37,8 @@ public class Game extends JPanel implements KeyListener{
 
     public JLayeredPane layeredPane; 
     
-    public boolean wait = false;
-    public boolean mouseTrigger =false;
+    public boolean wait = false; // trash
+    public boolean mouseTrigger =false; // trash
     
     
     
@@ -51,7 +51,7 @@ public class Game extends JPanel implements KeyListener{
         layeredPane = new JLayeredPane();;
     }
      
-    public boolean startGame() {
+    public boolean startGame() { // it is unnecessary to be a boolean
     	setTheFrame();
     	getSoundManager().startGameSound();
     	getEntityManager().createPlayerLabel(this);
@@ -60,12 +60,11 @@ public class Game extends JPanel implements KeyListener{
     	getStatusBarManager().setBounds(0, 0, this.getWidth(), this.getHeight());
     	layeredPane.add(getStatusBarManager());
     	startGameLoop();
-    	
     	return true;
     }
     
     private void resetPlayGround() {
-    	if(resetOnce) {
+    	if(resetOnce) { // that is for trigerring only once in the loop.
     		resetOnce = false;
         	background.deleteBackground();
             getEntityManager().deleteAllEnemies(this);

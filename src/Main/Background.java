@@ -4,11 +4,11 @@ import java.net.URL;
 import java.util.*;
 import java.util.List;
 public class Background {
-    private JLabel[][] tileLabels;
+    private final JLabel[][] tileLabels;
     private final Game game;
     private ImageIcon[] tileIcons;
     private final int tileSize;
-    private int numVerticalTiles;
+    private final int numVerticalTiles;
 
     public Background(Game game) {
         this.game = game;
@@ -67,7 +67,7 @@ public class Background {
                         JLabel tileLabel = tileLabels[row][col];
                         shuffleTileIcons();
                         tileLabel.setLocation(tileLabel.getX(), tileLabel.getY() - 1);
-                        if (tileLabel.getY() < -tileSize) { // 
+                        if (tileLabel.getY() < -tileSize) { // that means we are out of window, first shuffle the tiles then update the tiles
                             shuffleTileIcons();
                             int newRow = (numVerticalTiles - 1 + row) % numVerticalTiles; // we are updating the new row for rendering . 
                             tileLabel.setLocation(tileLabel.getX(), tileLabel.getY() + numVerticalTiles * tileSize);
@@ -111,7 +111,6 @@ public class Background {
                 game.remove(tileLabel);
             }
         }
-
         // Repaint the game panel to reflect the changes
         game.repaint();
     }

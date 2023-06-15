@@ -28,6 +28,29 @@ public class PlayerScoreManager {
         }
 	}
 	
+	public boolean checkUser(String username, String password) { // it is not in usage!!!.
+	    try {
+	        Scanner scanner = new Scanner(file);
+	        while (scanner.hasNextLine()) {
+	            String line = scanner.nextLine();
+	            String[] parts = line.split(" ");
+	            if (parts.length >= 2) {
+	                String storedUsername = parts[0];
+	                String storedPassword = parts[1];
+	                if (storedUsername.equals(username) && storedPassword.equals(password)) {
+	                    scanner.close();
+	                    return true; // User found in the file
+	                }
+	            }
+	        }
+	        scanner.close();
+	    } catch (FileNotFoundException e) {
+	        System.out.println("File not found.");
+	    }
+	    return false; // User not found in the file
+	}
+
+	
 	public String readTheFile() {
 		String fileOutput=null;
         try {

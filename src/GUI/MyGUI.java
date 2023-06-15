@@ -15,7 +15,6 @@ import java.util.Map.Entry;
 
 import Main.*;
 import Manager.*;
-
 @SuppressWarnings("serial")
 public class MyGUI extends JFrame {
 	static HashMap<String, String> playerInfo = new HashMap<String, String>();
@@ -45,7 +44,6 @@ public class MyGUI extends JFrame {
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                // Perform any necessary cleanup or actions here
                 scoreBoard.deleteTheFile();
                 System.exit(0);
             }
@@ -53,12 +51,26 @@ public class MyGUI extends JFrame {
         
         addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void mouseClicked(MouseEvent e) { // mouse listener for clicking on
                 if (currentGame == null) {
                     SwingUtilities.invokeLater(new Runnable() {
                         @Override
                         public void run() {
-                        	triggerGameStart();
+                        	int var;
+                        	String password = null;
+                        	String nickname = JOptionPane.showInputDialog(null ,"Enter a nickname: ", "Login", JOptionPane.PLAIN_MESSAGE);
+                        	if (nickname != null && !nickname.isEmpty()) {
+                        	    password = JOptionPane.showInputDialog(null ,"Enter a password: ", "Login", JOptionPane.PLAIN_MESSAGE);
+                        	    var = verifyPlayerInfo(nickname, password);
+                				if(var==-1) {
+                					JOptionPane.showMessageDialog(null, "There is no saved user with that nickname, first register from file tab.");
+                					return;
+                				}else if(var==0) {
+                        		JOptionPane.showMessageDialog(null, "Password is not matching with that nickname, re-enter");
+                				}else {
+                					triggerGameStart();
+                				}
+                        	}
                         }
                     });
                 }
@@ -158,8 +170,8 @@ public class MyGUI extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				// TODO Auto-generated method stub
-				String nickname = JOptionPane.showInputDialog("Enter a nickname: ", null);
-				String password = JOptionPane.showInputDialog("Enter a password: ", null);
+				String nickname = JOptionPane.showInputDialog(null ,"Enter a nickname: ", "Register", JOptionPane.PLAIN_MESSAGE);
+				String password = JOptionPane.showInputDialog(null ,"Enter a password: ", "Register", JOptionPane.PLAIN_MESSAGE);
 				playerInfo.put(nickname, password);	
 			}
         });
@@ -170,7 +182,23 @@ public class MyGUI extends JFrame {
                 SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                    	triggerGameStart();
+                    	int var;
+                    	String password = null;
+                    	String nickname = JOptionPane.showInputDialog(null ,"Enter a nickname: ", "Login", JOptionPane.PLAIN_MESSAGE);
+                    	if (nickname != null && !nickname.isEmpty()) {
+                    	    password = JOptionPane.showInputDialog(null ,"Enter a password: ", "Login", JOptionPane.PLAIN_MESSAGE);
+                    	    // Rest of your code to handle the password input
+                    	    var = verifyPlayerInfo(nickname, password);
+            				if(var==-1) {
+            					JOptionPane.showMessageDialog(null, "There is no saved user with that nickname, first register from file tab.");
+            					return;
+            				}else if(var==0) {
+                    		JOptionPane.showMessageDialog(null, "Password is not matching with that nickname, re-enter");
+            				}else {
+            					triggerGameStart();
+            				}
+                    	}
+        				
                     }
                 });
             }
@@ -185,7 +213,17 @@ public class MyGUI extends JFrame {
         });
     }
     
-    public void triggerGameStart() {
+    public int verifyPlayerInfo(String nickname, String password) {
+        if (playerInfo.containsKey(nickname)) {
+            String storedPassword = playerInfo.get(nickname);
+            if(storedPassword.equals(password))return 1;
+            return 0;
+        }else {
+        	return -1;
+        }
+    }
+    
+    public void triggerGameStart() { // in order to trigger to starting game .
     	remove(startLabel);
     	if(currentGame!=null) { // if there is game in progress when the user click 
     		currentGame.gameOver=false; // on playGame button, then game is going to 
@@ -193,7 +231,7 @@ public class MyGUI extends JFrame {
     	}
         Game game = new Game();
         game.startGame();
-        add(game, BorderLayout.CENTER);//add(game);
+        add(game, BorderLayout.CENTER); //add(game);
         game.requestFocusInWindow();
         currentGame = game;
         Thread stopIndicatorThread = new Thread(()->{ // that thread catchs whether the game is stop or not 
@@ -206,7 +244,7 @@ public class MyGUI extends JFrame {
     			System.out.print("");
     			continue;
     		}
-    		if(!currentGame.gameOver) {
+    		if(!currentGame.gameOver) { // if the game is not over but the user clicked play again, that scope saves the score and player info into a file additionally stops the game sound
     			currentGame.getSoundManager().stopGameSound();
     			saveTheScore();
     		}
@@ -214,7 +252,7 @@ public class MyGUI extends JFrame {
     	stopIndicatorThread.start();
     }
     
-    public void saveTheScore() {
+    public void saveTheScore() { // when the game is over, it saves the score into a file in line 270
 		int score = currentGame.score;
    		int counter = 0;
 		String output = null;
@@ -222,21 +260,21 @@ public class MyGUI extends JFrame {
 		//when the game is running 
 		System.out.println("reseting the game");
 		
-		for(Entry<String, String> entry: playerInfo.entrySet()){
+		for(Entry<String, String> entry: playerInfo.entrySet()){ // after the terminating, updates the player number.
             if(counter == playerNumber){
                 output = entry.getKey();
             }
             counter++;
 		}
         try {
-			scoreBoard.writeToFile(output, score);
+			scoreBoard.writeToFile(output, score); // updates the file
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     }
     
-    public static void main(String[] args) {
+    public static void main(String[] args) { // runs the game GUI
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {

@@ -15,13 +15,13 @@ import java.util.Random;
 
 public class EntityManager {
 	public Player player; 
-	private int playerSpeed = 5; 
+	private final int playerSpeed = 5;
 	private int playerHP = 3; // Player's hit points
-	private int counter = 0; // counter for player animation 
+	private int counter = 0; // counter for player animation
 	private boolean untouchable = false; // after player taken a damage, there will be untouchable time interval.
 	
 	public List<Enemy> enemyList;
-	private int enemyHP = 5; // Enemy's hit points
+	private int enemyHP = 10; // Enemy's hit points
 	private int enemySpeed = 1; // Enemy's movement speed
 	private int horizontalMoveEnemy = 1;
 	private boolean creatingEnemies; // controlling the period of enemy spawning
@@ -275,7 +275,7 @@ public class EntityManager {
 			}
 		});
 		animationThread.start();
-		}
+	}
 	
 	public void deletePlayer(Game game) {
 		game.remove(player.getLabel());
